@@ -1,0 +1,140 @@
+@import "tailwindcss";
+
+/*
+ * Palette — see DESIGN.md.
+ * Light-mode hues are authoritative; dark mode brightens them on an ink-navy ground.
+ */
+:root {
+  --paper: #f2f4f8;
+  --ink: #23244e;
+  --ultramarine: #3542e8;
+  --mint: #0fa36b;
+  --amber: #ffb627;
+  --magenta: #d6336c;
+  --ink-soft: #4a4c7d;
+  --line: #23244e;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #171a33;
+    --ink: #e7e9f8;
+    --ultramarine: #7a85ff;
+    --mint: #2bd48d;
+    --amber: #ffc64d;
+    --magenta: #f06a9a;
+    --ink-soft: #a9add4;
+    --line: #e7e9f8;
+  }
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ultramarine: var(--ultramarine);
+  --color-mint: var(--mint);
+  --color-amber: var(--amber);
+  --color-magenta: var(--magenta);
+  --color-line: var(--line);
+  --font-display: var(--font-bricolage), sans-serif;
+  --font-sans: var(--font-plex-sans), sans-serif;
+  --font-mono: var(--font-plex-mono), monospace;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+/* Highlighter Amber text selection, per DESIGN.md */
+::selection {
+  background: var(--amber);
+  color: #23244e;
+}
+
+/* Visible keyboard focus on every interactive element */
+:focus-visible {
+  outline: 2px solid var(--ultramarine);
+  outline-offset: 2px;
+}
+
+/*
+ * The one deliberate animation: an amber highlighter sweep across the hero's
+ * key phrase, followed by a single fade of the intro paragraph. Base styles
+ * are the FINAL state; keyframes only override the start, so with
+ * prefers-reduced-motion the page simply renders finished — no motion.
+ */
+@keyframes hl-sweep {
+  from {
+    background-size: 0% 100%;
+  }
+  to {
+    background-size: 100% 100%;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.hl-sweep {
+  background-image: linear-gradient(var(--amber), var(--amber));
+  background-repeat: no-repeat;
+  background-position: 0 78%;
+  background-size: 100% 38%;
+  animation: hl-sweep 0.7s cubic-bezier(0.65, 0, 0.35, 1) 0.4s both;
+}
+
+.fade-in {
+  animation: fade-in 0.5s ease-out 0.9s both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hl-sweep,
+  .fade-in {
+    animation: none;
+  }
+}
+
+
+/* Case-study body styling (rendered markdown) */
+.case-study p {
+  margin-bottom: 1.25rem;
+  line-height: 1.65;
+}
+.case-study ul {
+  margin-bottom: 1.25rem;
+  list-style: disc;
+  padding-left: 1.5rem;
+}
+.case-study li {
+  margin-bottom: 0.375rem;
+  line-height: 1.6;
+}
+.case-study strong {
+  font-weight: 600;
+}
+.case-study code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  background: color-mix(in srgb, var(--mint) 14%, transparent);
+  padding: 0.1em 0.35em;
+}
+.case-study a {
+  color: var(--ultramarine);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.case-study h3 {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 2rem 0 0.75rem;
+}
+
