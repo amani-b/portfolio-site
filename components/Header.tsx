@@ -23,11 +23,14 @@ export default function Header() {
       <div className="mx-auto flex w-full max-w-6xl items-baseline justify-between px-6 py-5">
         <TransitionLink
           href="/"
-          className="font-display text-lg font-semibold tracking-tight transition-colors duration-150 hover:text-accent"
+          className="whitespace-nowrap font-display text-base font-semibold tracking-tight transition-colors duration-150 hover:text-accent sm:text-lg"
         >
           Alex Carter
         </TransitionLink>
-        <nav aria-label="Primary" className="flex gap-5 font-mono text-[11px] uppercase tracking-[0.18em] sm:gap-7">
+        <nav
+          aria-label="Primary"
+          className="flex items-center gap-3.5 font-mono text-[11px] uppercase tracking-[0.18em] sm:gap-7"
+        >
           {links.map((link) => {
             const active = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
             return (

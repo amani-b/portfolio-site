@@ -3,12 +3,13 @@
 import { useSyncExternalStore } from "react";
 
 /**
- * Light/dark toggle. The theme lives as a `light`/`dark` class on <html>,
- * applied before first paint by an inline script in layout.tsx (stored
- * preference, else system). This button flips the class and persists the
- * choice. Theme state is read from the DOM via useSyncExternalStore — no
- * duplicated React state. The glyph span carries suppressHydrationWarning
- * because the server render can't know the theme.
+ * Light/dark switch — a sliding pill consistent with the notebook language:
+ * hairline border, raised paper track, solid-ink knob, mono glyph. The theme
+ * lives as a `light`/`dark` class on <html>, applied before first paint by an
+ * inline script in layout.tsx (stored preference, else system). Theme state is
+ * read from the DOM via useSyncExternalStore — no duplicated React state. The
+ * glyph span carries suppressHydrationWarning because the server render can't
+ * know the theme.
  */
 
 type Theme = "light" | "dark";
@@ -44,17 +45,46 @@ function setTheme(next: Theme) {
 
 export default function ThemeToggle() {
   const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const dark = theme === "dark";
 
   return (
     <button
       type="button"
-      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-      title="Toggle light / dark"
-      className="inline-flex h-5 w-5 items-center justify-center font-mono text-sm leading-none transition-colors duration-150 hover:text-accent"
+      role="switch"
+      aria-checked={dark}
+      aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+      title={dark ? "Switch to light mode" : "Switch to dark mode"}
+      onClick={() => setTheme(dark ? "light" : "dark")}
+      className="group relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border border-line bg-paper-raised px-0.5 transition-colors duration-200 hover:border-line-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:h-8 sm:w-[4.5rem] sm:px-1"
     >
-      <span aria-hidden="true" suppressHydrationWarning>
-        {theme === "dark" ? "☀" : "☾"}
+      {/* track glyphs — the destination of the knob is always the visible one */}
+      <span
+        aria-hidden="true"
+        className={`pointer-events-none absolute left-3 hidden font-mono text-xs transition-colors duration-200 sm:block ${
+          dark ? "text-ink-soft" : "text-paper-raised"
+        }`}
+        suppressHydrationWarning
+      >
+        ☀
+      </span>
+      <span
+        aria-hidden="true"
+        className={`pointer-events-none absolute right-3 hidden font-mono text-xs transition-colors duration-200 sm:block ${
+          dark ? "text-paper-raised" : "text-ink-soft"
+        }`}
+        suppressHydrationWarning
+      >
+        ☾
+      </span>
+      {/* knob */}
+      <span
+        aria-hidden="true"
+        className={`relative inline-flex h-5 w-5 items-center justify-center rounded-full bg-ink font-mono text-[11px] text-paper transition-transform duration-300 ease-[cubic-bezier(0.2,0.9,0.3,1)] group-active:scale-95 sm:h-6 sm:w-6 sm:text-xs ${
+          dark ? "translate-x-5 sm:translate-x-[1.75rem]" : "translate-x-0"
+        }`}
+        suppressHydrationWarning
+      >
+        {dark ? "☾" : "☀"}
       </span>
     </button>
   );
