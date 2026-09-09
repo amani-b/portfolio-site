@@ -2,7 +2,7 @@ import TransitionLink from "@/components/TransitionLink";
 
 export const metadata = {
   title: "About",
-  description: "Who Alex Carter is as a developer, and how to get in touch.",
+  description: "Who Amanuel Berhanu is as a developer, and how to get in touch.",
 };
 
 export default function AboutPage() {
@@ -14,7 +14,7 @@ export default function AboutPage() {
           <dl className="space-y-6 text-sm">
             <div>
               <dt className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-soft">Studying</dt>
-              <dd className="mt-1.5 leading-relaxed">BSc Computer Science, final year</dd>
+              <dd className="mt-1.5 leading-relaxed">BSc Computer Science, 3rd year</dd>
             </div>
             <div>
               <dt className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-soft">Building with</dt>
@@ -42,7 +42,7 @@ export default function AboutPage() {
 
           <div className="mt-8 max-w-2xl space-y-5 text-lg leading-relaxed">
             <p>
-              I&rsquo;m a final-year computer science student who builds the kind of software a team
+              I&rsquo;m a 3rd-year computer science student who builds the kind of software a team
               runs on rather than looks at. My{" "}
               <TransitionLink href="/projects/cafeerp" className="font-medium text-ink">
                 <span className="rule-draw">biggest project so far</span>
@@ -74,13 +74,13 @@ export default function AboutPage() {
             </p>
             <ul className="mt-6 space-y-3 text-lg font-medium">
               <li>
-                <a href="mailto:hello@example.com" className="text-ink">
-                  <span className="rule-draw">hello@example.com</span>
+                <a href="mailto:amanuelberhanu.2052@gmail.com" className="text-ink">
+                  <span className="rule-draw">amanuelberhanu.2052@gmail.com</span>
                 </a>
               </li>
               <li>
-                <a href="https://github.com/example-username" className="text-ink">
-                  <span className="rule-draw">github.com/example-username</span>
+                <a href="https://github.com/amani-b" className="text-ink">
+                  <span className="rule-draw">github.com/amani-b</span>
                 </a>
               </li>
               <li>

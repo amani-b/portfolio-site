@@ -22,25 +22,25 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://alexcarter.dev"),
+  metadataBase: new URL("https://amani-b.github.io"),
   title: {
-    default: "Alex Carter — Portfolio",
-    template: "%s — Alex Carter",
+    default: "Amanuel Berhanu — Portfolio",
+    template: "%s — Amanuel Berhanu",
   },
-  description: "Portfolio of Alex Carter, a developer who builds internal tools and data-driven web applications that ship.",
+  description: "Portfolio of Amanuel Berhanu, a 3rd-year computer science student who builds software products end to end.",
   openGraph: {
     type: "website",
-    siteName: "Alex Carter — Portfolio",
-    title: "Alex Carter — Portfolio",
+    siteName: "Amanuel Berhanu — Portfolio",
+    title: "Amanuel Berhanu — Portfolio",
     description:
-      "I build internal tools and data-driven web applications. Case studies with honest write-ups of decisions and trade-offs.",
+      "I build software-related products, from data models to interfaces. Case studies with honest write-ups of decisions and trade-offs.",
     url: "/",
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Alex Carter — Portfolio",
-    description: "I build internal tools and data-driven web applications that ship.",
+    title: "Amanuel Berhanu — Portfolio",
+    description: "I build software-related products, from data models to interfaces.",
   },
   robots: { index: true, follow: true },
 };

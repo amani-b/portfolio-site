@@ -12,7 +12,7 @@ export default function Home() {
       {/* ————— Hero ————— */}
       <section className="mx-auto w-full max-w-6xl px-6 pb-step-4 pt-step-4 md:pb-step-5 md:pt-step-6">
         <p className="rise font-mono text-[11px] uppercase tracking-[0.18em] text-ink-soft">
-          Alex Carter — CS &rsquo;26
+          Amanuel Berhanu — 3rd-year computer science student
         </p>
         <h1 className="rise-2 mt-4 max-w-4xl font-display text-4xl font-semibold leading-[1.05] tracking-[-0.02em] sm:text-6xl md:text-7xl">
           I build systems that{" "}

@@ -58,7 +58,7 @@ export default function Header() {
               href="/"
               className="whitespace-nowrap font-display text-base font-semibold tracking-tight transition-colors duration-150 hover:text-accent sm:text-lg"
             >
-              Alex Carter
+              Amanuel Berhanu
             </TransitionLink>
             <div className="sm:hidden">
               <ThemeToggle />
