@@ -18,8 +18,23 @@ export default function ProjectCard({
   return (
     <TransitionLink
       href={`/projects/${project.slug}`}
-      className="group relative grid grid-cols-[2rem_4.5rem_1fr_auto] items-center gap-x-4 border-t border-line py-6 transition-colors duration-200 hover:bg-accent-wash sm:grid-cols-[2.5rem_7rem_1fr_auto] sm:gap-x-6"
+      className="group relative grid grid-cols-[2rem_4.5rem_1fr_auto] items-center gap-x-4 border-t border-line py-6 transition-colors duration-200 sm:grid-cols-[2.5rem_7rem_1fr_auto] sm:gap-x-6"
     >
+      {/*
+        Full-bleed hover band: instead of tinting the row itself (which was
+        flush with its edges), the wash is an absolutely positioned layer that
+        bleeds 1.5rem past both sides of the text column — to the viewport edge
+        on mobile, and past the grid rail on desktop — so the selection state
+        has real breathing room while the ruled lines stay on the page grid.
+      */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 -left-6 -right-6 hidden bg-accent-wash opacity-0 transition-opacity duration-200 group-hover:opacity-100 sm:block"
+      />
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 -left-6 right-0 bg-accent-wash opacity-0 transition-opacity duration-200 group-hover:opacity-100 sm:hidden"
+      />
       <span
         aria-hidden="true"
         className="font-mono text-sm text-ink-soft tabular-nums transition-colors duration-200 group-hover:text-accent"

@@ -4,7 +4,7 @@ import { useSyncExternalStore } from "react";
 
 /**
  * Light/dark switch — a sliding pill consistent with the notebook language:
- * hairline border, raised paper track, solid-ink knob, mono glyph. The theme
+ * hairline border, raised paper track, solid-ink knob, hairline SVG glyph. The theme
  * lives as a `light`/`dark` class on <html>, applied before first paint by an
  * inline script in layout.tsx (stored preference, else system). Theme state is
  * read from the DOM via useSyncExternalStore — no duplicated React state. The
@@ -43,6 +43,32 @@ function setTheme(next: Theme) {
   listeners.forEach((notify) => notify());
 }
 
+/**
+ * Sun and moon drawn as inline SVG in the site's hairline linework
+ * (1.25 stroke, round caps — same weight as the rules and borders),
+ * sized to the knob and optically centered, replacing the old Unicode
+ * glyphs which never matched the mono font's weight or alignment.
+ */
+
+function SunIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" className={className} aria-hidden="true">
+      <circle cx="8" cy="8" r="3" />
+      <path d="M8 1v1.8M8 13.2V15M15 8h-1.8M2.8 8H1M13.06 2.94l-1.27 1.27M4.21 11.79l-1.27 1.27M13.06 13.06l-1.27-1.27M4.21 4.21L2.94 2.94" />
+    </svg>
+  );
+}
+
+function MoonIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinejoin="round" className={className} aria-hidden="true">
+      <path d="M13.2 9.6a5.6 5.6 0 1 1-6.8-6.8 5.6 5.6 0 0 0 6.8 6.8Z" />
+    </svg>
+  );
+}
+
+const GLYPH = "h-3 w-3 sm:h-3.5 sm:w-3.5";
+
 export default function ThemeToggle() {
   const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const dark = theme === "dark";
@@ -60,31 +86,31 @@ export default function ThemeToggle() {
       {/* track glyphs — the destination of the knob is always the visible one */}
       <span
         aria-hidden="true"
-        className={`pointer-events-none absolute left-3 hidden font-mono text-xs transition-colors duration-200 sm:block ${
+        className={`pointer-events-none absolute left-3 hidden transition-colors duration-200 sm:block ${
           dark ? "text-ink-soft" : "text-paper-raised"
         }`}
         suppressHydrationWarning
       >
-        ☀
+        <SunIcon className={GLYPH} />
       </span>
       <span
         aria-hidden="true"
-        className={`pointer-events-none absolute right-3 hidden font-mono text-xs transition-colors duration-200 sm:block ${
+        className={`pointer-events-none absolute right-3 hidden transition-colors duration-200 sm:block ${
           dark ? "text-paper-raised" : "text-ink-soft"
         }`}
         suppressHydrationWarning
       >
-        ☾
+        <MoonIcon className={GLYPH} />
       </span>
       {/* knob */}
       <span
         aria-hidden="true"
-        className={`relative inline-flex h-5 w-5 items-center justify-center rounded-full bg-ink font-mono text-[11px] text-paper transition-transform duration-300 ease-[cubic-bezier(0.2,0.9,0.3,1)] group-active:scale-95 sm:h-6 sm:w-6 sm:text-xs ${
+        className={`relative inline-flex h-5 w-5 items-center justify-center rounded-full bg-ink text-paper transition-transform duration-300 ease-[cubic-bezier(0.2,0.9,0.3,1)] group-active:scale-95 sm:h-6 sm:w-6 ${
           dark ? "translate-x-5 sm:translate-x-[1.75rem]" : "translate-x-0"
         }`}
         suppressHydrationWarning
       >
-        {dark ? "☾" : "☀"}
+        {dark ? <MoonIcon className={GLYPH} /> : <SunIcon className={GLYPH} />}
       </span>
     </button>
   );
