@@ -1,4 +1,4 @@
-import Link from "next/link";
+import TransitionLink from "@/components/TransitionLink";
 
 export const metadata = {
   title: "About — Alex Carter",
@@ -8,8 +8,8 @@ export const metadata = {
 export default function AboutPage() {
   return (
     <div className="mx-auto w-full max-w-6xl px-6">
-      <div className="grid grid-cols-1 gap-10 py-16 md:grid-cols-[14rem_1fr] md:py-20">
-        <aside className="order-2 space-y-6 text-sm md:order-1 md:sticky md:top-8 md:self-start">
+      <div className="grid grid-cols-1 gap-step-3 py-step-4 md:grid-cols-[14rem_1fr] md:py-step-5">
+        <aside className="order-2 space-y-step-2 text-sm md:order-1 md:sticky md:top-8 md:self-start">
           <dl className="space-y-4">
             <div>
               <dt className="font-medium text-ink-soft">Studying</dt>
@@ -40,13 +40,13 @@ export default function AboutPage() {
         <div className="order-1 md:order-2">
           <h1 className="font-display text-4xl font-bold tracking-tight sm:text-5xl">About</h1>
 
-          <div className="mt-8 max-w-2xl space-y-5 text-lg leading-relaxed">
+          <div className="mt-step-3 max-w-2xl space-y-step-2 text-lg leading-relaxed">
             <p>
               I&rsquo;m a final-year computer science student who builds internal tools and data-driven web
               applications — the kind of software a team runs on rather than looks at. My{" "}
-              <Link href="/projects/deploy-dashboard" className="font-medium text-ultramarine underline underline-offset-4 hover:no-underline">
+              <TransitionLink href="/projects/deploy-dashboard" className="font-medium text-ultramarine underline underline-offset-4 hover:no-underline">
                 deploy dashboard
-              </Link>{" "}
+              </TransitionLink>{" "}
               aggregated continuous-integration events from eight services into one realtime health view and cut
               on-call triage time by roughly 80%; before it existed, that work happened by scrolling Slack threads.
             </p>
@@ -59,21 +59,21 @@ export default function AboutPage() {
             </p>
             <p>
               Outside of coursework I ship things end to end on my own — my{" "}
-              <Link href="/projects/recipe-scanner" className="font-medium text-ultramarine underline underline-offset-4 hover:no-underline">
+              <TransitionLink href="/projects/recipe-scanner" className="font-medium text-ultramarine underline underline-offset-4 hover:no-underline">
                 recipe scanner
-              </Link>{" "}
+              </TransitionLink>{" "}
               runs on-device optical character recognition in a web worker so it works offline with zero API costs. I
               write the way I build: plainly, precisely, and with the mistakes left in where they&rsquo;re instructive.
             </p>
           </div>
 
-          <section className="mt-16 border-t-2 border-line pt-10" id="contact">
+          <section className="mt-step-5 border-t-2 border-line pt-step-5" id="contact">
             <h2 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">Contact</h2>
-            <p className="mt-4 max-w-2xl leading-relaxed text-ink-soft">
+            <p className="mt-step-2 max-w-2xl leading-relaxed text-ink-soft">
               The fastest way to reach me is email — I reply to everything. I&rsquo;m happy to talk about internships,
               junior roles, or anything I&rsquo;ve built.
             </p>
-            <ul className="mt-6 space-y-2 text-lg">
+            <ul className="mt-step-2 space-y-2 text-lg">
               <li>
                 <a
                   href="mailto:hello@example.com"

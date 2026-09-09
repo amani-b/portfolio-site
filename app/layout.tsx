@@ -47,8 +47,16 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${bricolage.variable} ${plexSans.variable} ${plexMono.variable} h-full antialiased`}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${bricolage.variable} ${plexSans.variable} ${plexMono.variable} h-full antialiased`}
+    >
       <body className="flex min-h-full flex-col bg-paper font-sans text-ink">
+        {/* Marks JS availability before first paint so .reveal start states only apply when they can animate away. */}
+        <script
+          dangerouslySetInnerHTML={{ __html: "document.documentElement.classList.add('js')" }}
+        />
         <Header />
         <main className="flex flex-1 flex-col">{children}</main>
         <Footer />

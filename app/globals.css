@@ -13,6 +13,16 @@
   --magenta: #d6336c;
   --ink-soft: #4a4c7d;
   --line: #23244e;
+  /* Graph-paper grid line — derived from ink so dark mode adapts automatically. */
+  --grid-line: color-mix(in srgb, var(--ink) 4%, transparent);
+  /*
+   * Elevation tokens (DESIGN-V2 §4.1) — hard offset shadows, zero blur.
+   * Depth comes from geometry, never from blur. Derived from --ink/--ultramarine
+   * so both themes adapt without separate values.
+   */
+  --elev-rest: 4px 4px 0 0 color-mix(in srgb, var(--ink) 18%, transparent);
+  --elev-lift: 6px 6px 0 0 var(--ultramarine);
+  --elev-press: 0 0 0 0 transparent;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -40,11 +50,80 @@
   --font-display: var(--font-bricolage), sans-serif;
   --font-sans: var(--font-plex-sans), sans-serif;
   --font-mono: var(--font-plex-mono), monospace;
+  --shadow-rest: var(--elev-rest);
+  --shadow-lift: var(--elev-lift);
+  --shadow-press: var(--elev-press);
+}
+
+/*
+ * Vertical rhythm scale — the ONLY spacing values used for section padding,
+ * grid gaps, and stacked-block margins site-wide. Tailwind generates
+ * utilities like `py-step-4`, `mt-step-3`, `gap-step-2`, `space-y-step-5` from these tokens.
+ *
+ *   step-1 = 8px   intra-element gaps (label → value)
+ *   step-2 = 20px  element → element (heading → list, paragraph → paragraph)
+ *   step-3 = 32px  block → block (heading → grid), hero top padding
+ *   step-4 = 40px  section padding (mobile), page-top padding
+ *   step-5 = 64px  section padding (desktop), major block separation
+ *
+ * NOTE: names MUST NOT be bare xs/sm/md/lg/xl — those keys shadow Tailwind's
+ * container scale and turn `max-w-xl` into 4rem.
+ */
+@theme {
+  --spacing-step-1: 0.5rem;
+  --spacing-step-2: 1.25rem;
+  --spacing-step-3: 2rem;
+  --spacing-step-4: 2.5rem;
+  --spacing-step-5: 4rem;
 }
 
 body {
-  background: var(--paper);
+  background-color: var(--paper);
+  /* Graph Paper is a material, not a color (DESIGN-V2 §4.2): a faint 24px grid. */
+  background-image:
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  background-size: 24px 24px;
   color: var(--ink);
+}
+
+/*
+ * Page-to-page transitions (DESIGN-V2 §4.4). Route changes go through
+ * <TransitionLink> → document.startViewTransition; here we keep the crossfade
+ * quick (160ms) and opt fully out under reduced motion.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 160ms;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-image-pair(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
+/*
+ * Arrival gesture for the case-study page: the article rises and settles once
+ * on entry (re-keyed per project, so navigating "next project" replays it).
+ * from-only keyframes + `both` = the natural layout is the final state.
+ */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    translate: 0 12px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .page-enter {
+    animation: page-enter 0.4s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+  }
 }
 
 /* Highlighter Amber text selection, per DESIGN.md */
@@ -99,6 +178,28 @@ body {
   .hl-sweep,
   .fade-in {
     animation: none;
+  }
+}
+
+/*
+ * Scroll entrances (DESIGN-V2 §4.3): one-shot rise-and-settle. Base styles are
+ * the FINAL state; the hidden start state is applied only when JS is present
+ * (html.js, set by an inline script in layout.tsx) and motion is allowed, so
+ * no-JS and prefers-reduced-motion users simply see the finished page.
+ * Stagger via --reveal-delay, set inline by <Reveal>.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .js .reveal {
+    opacity: 0;
+    translate: 0 12px;
+    transition:
+      opacity 0.4s ease-out,
+      translate 0.4s cubic-bezier(0.2, 0.9, 0.3, 1);
+    transition-delay: var(--reveal-delay, 0ms);
+  }
+  .js .reveal.is-visible {
+    opacity: 1;
+    translate: 0 0;
   }
 }
 

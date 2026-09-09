@@ -1,7 +1,8 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAllProjects, getProjectBySlug } from "@/lib/projects";
 import { renderCaseStudy } from "@/lib/case-study";
+import TransitionLink from "@/components/TransitionLink";
+import FigureStack from "@/components/FigureStack";
 
 export function generateStaticParams() {
   return getAllProjects().map((project) => ({ slug: project.slug }));
@@ -25,14 +26,14 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div className="mx-auto w-full max-w-6xl px-6">
-      <div className="pt-8">
-        <Link href="/projects" className="text-sm text-ultramarine underline underline-offset-4 hover:no-underline">
+      <div className="pt-step-4">
+        <TransitionLink href="/projects" className="text-sm text-ultramarine underline underline-offset-4 hover:no-underline">
           All projects
-        </Link>
+        </TransitionLink>
       </div>
 
-      <div className="grid grid-cols-1 gap-10 py-10 md:grid-cols-[14rem_1fr] md:py-14">
-        <aside className="order-2 space-y-6 md:order-1 md:sticky md:top-8 md:self-start">
+      <div className="grid grid-cols-1 gap-step-3 pb-step-4 md:pb-step-5">
+        <aside className="order-2 space-y-step-2 md:order-1 md:sticky md:top-8 md:self-start">
           <dl className="space-y-4 text-sm">
             <div>
               <dt className="font-medium text-ink-soft">Year</dt>
@@ -86,14 +87,14 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           ) : null}
         </aside>
 
-        <article className="order-1 md:order-2">
+        <article key={project.slug} className="page-enter order-1 md:order-2">
           <h1 className="font-display text-4xl font-bold tracking-tight sm:text-5xl">{project.title}</h1>
           <p className="mt-3 max-w-2xl text-xl leading-relaxed text-ink-soft">{project.tagline}</p>
 
           {project.highlights.length > 0 ? (
-            <section className="mt-8 border-2 border-line bg-mint/10 p-6 sm:p-8">
+            <section className="mt-step-3 border-2 border-line bg-mint/10 p-6 sm:p-8">
               <h2 className="font-display text-lg font-bold tracking-tight">Key facts</h2>
-              <ul className="mt-3 space-y-2.5 border-l-4 border-mint pl-4">
+              <ul className="mt-step-2 space-y-2.5 border-l-4 border-mint pl-4">
                 {project.highlights.map((highlight) => (
                   <li key={highlight} className="text-[17px] font-medium leading-relaxed">
                     {highlight}
@@ -103,37 +104,19 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             </section>
           ) : null}
 
-          {project.images.length > 0 ? (
-            <div className="mt-10 space-y-6">
-              {project.images.map((src, index) => (
-                <figure key={src} className="border-2 border-line p-2">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={src}
-                    alt={`${project.title} screenshot ${index + 1}`}
-                    loading="lazy"
-                    decoding="async"
-                    className="w-full bg-ink/5"
-                  />
-                  <figcaption className="mt-2 font-mono text-sm text-ink-soft">
-                    Figure {index + 1} — {project.title}
-                  </figcaption>
-                </figure>
-              ))}
-            </div>
-          ) : null}
+          {project.images.length > 0 ? <FigureStack slug={project.slug} images={project.images} title={project.title} /> : null}
 
-          <div className="mt-12 space-y-12">
+          <div className="mt-step-5 space-y-step-5">
             {sections.map((section, index) =>
               section.isRetrospective ? (
                 <section key={section.title} className="border-2 border-line bg-mint/10 p-6 sm:p-8">
                   <h2 className="font-display text-xl font-bold tracking-tight">{section.title}</h2>
-                  <div className="case-study mt-4 max-w-2xl" dangerouslySetInnerHTML={{ __html: section.html }} />
+                  <div className="case-study mt-step-2 max-w-2xl" dangerouslySetInnerHTML={{ __html: section.html }} />
                 </section>
               ) : (
-                <section key={section.title} className={index > 0 ? "border-t-2 border-mint pt-10" : undefined}>
+                <section key={section.title} className={index > 0 ? "border-t-2 border-mint pt-step-5" : undefined}>
                   <h2 className="font-display text-2xl font-bold tracking-tight">{section.title}</h2>
-                  <div className="case-study mt-4 max-w-2xl" dangerouslySetInnerHTML={{ __html: section.html }} />
+                  <div className="case-study mt-step-2 max-w-2xl" dangerouslySetInnerHTML={{ __html: section.html }} />
                 </section>
               ),
             )}
@@ -141,15 +124,15 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         </article>
       </div>
 
-      <div className="border-t-2 border-line py-8">
+      <div className="border-t-2 border-line py-step-4">
         <p className="text-ink-soft">
           Next project:{" "}
-          <Link
+          <TransitionLink
             href={`/projects/${nextProject.slug}`}
             className="font-medium text-ultramarine underline underline-offset-4 hover:no-underline"
           >
             {nextProject.title}
-          </Link>
+          </TransitionLink>
         </p>
       </div>
     </div>

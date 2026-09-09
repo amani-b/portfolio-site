@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local dev verification artifacts (scripts/visual-check.cjs output)
+/screenshots/
