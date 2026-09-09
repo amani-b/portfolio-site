@@ -1,113 +1,167 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { CSSProperties, KeyboardEvent, PointerEvent as ReactPointerEvent, WheelEvent as ReactWheelEvent } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import type {
+  CSSProperties,
+  KeyboardEvent,
+  MouseEvent as ReactMouseEvent,
+  PointerEvent as ReactPointerEvent,
+  WheelEvent as ReactWheelEvent,
+} from "react";
 
 /**
- * The tactile screenshot browser (DESIGN-V2 §4.5) — the centerpiece of Phase 2b.
+ * Screenshot browser — a horizontal drag carousel.
  *
- * - All screenshots render as a fanned stack of index cards: hard offset
- *   shadows, slight rotation offsets, each frame overlapping the previous.
- * - Wheel / drag on the stack cycles the top card to the back with an
- *   overshoot-and-settle; the mono caption tab shows "Figure N / M".
- * - Click (or Enter) opens a full-viewport lightbox via the View Transitions
- *   API — the figure is the shared element. Inside: drag to pan, wheel /
- *   pinch / ± to zoom toward the cursor, Esc to close, arrows between
- *   figures, 0 to reset. Focus is trapped, background scroll is locked, and
- *   focus returns to the originating figure on close.
- * - No third-party lightbox. With prefers-reduced-motion the stack renders
- *   flat and cycles via crossfade; the lightbox works fully by keyboard with
- *   no smoothing.
+ * Gesture contract (one gesture, one outcome, bidirectional):
+ * - Drag left → next. Drag right → previous. Rubber-bands at the ends.
+ * - Vertical scrolling is NEVER hijacked: the viewport uses touch-action: pan-y;
+ *   a drag is aborted entirely if the user's intent reads vertical.
+ * - The mouse wheel is left alone — no scrolljacking. Arrows and a visible
+ *   counter are the explicit affordances.
+ * - Click vs drag can never double-fire: a click opens the lightbox only if
+ *   the pointer moved less than 8px between down and up.
+ * - Keyboard: ← → cycle when the carousel has focus; the lightbox keeps the
+ *   full keyboard set (Esc, arrows, zoom, Tab trap, focus return).
+ * - prefers-reduced-motion: no transitions anywhere; everything snaps.
  */
 
-const STACK_ROTATIONS = [-1.5, 0, 1.5];
-const STACK_DEPTH_STEP = 24; // px of overlap per card behind the top
-const DRAG_THRESHOLD = 40; // px of drag before a cycle triggers
+const SNAP_THRESHOLD_RATIO = 0.16; // fraction of viewport width that commits a slide
 const MAX_ZOOM = 4;
 const MIN_ZOOM = 1;
 
 type ZoomState = { scale: number; x: number; y: number };
 const ZOOM_RESET: ZoomState = { scale: 1, x: 0, y: 0 };
 
-function prefersReducedMotion(): boolean {
-  return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+function figureName(index: number): string {
+  return `figure-${index}`;
 }
 
-export default function FigureStack({ slug, images, title }: { slug: string; images: string[]; title: string }) {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [dragOffset, setDragOffset] = useState<{ x: number; y: number } | null>(null);
+/** Media-query subscription for useSyncExternalStore (reduced-motion). */
+function subscribeReducedMotion(onChange: () => void): () => void {
+  const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+  mq.addEventListener("change", onChange);
+  return () => mq.removeEventListener("change", onChange);
+}
+
+export default function FigureStack({ images, title }: { slug: string; images: string[]; title: string }) {
+  const [index, setIndex] = useState(0);
+  const [dragPx, setDragPx] = useState(0);
+  const [dragging, setDragging] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [zoom, setZoom] = useState<ZoomState>(ZOOM_RESET);
-
-  const dragState = useRef<{ pointerId: number; startX: number; startY: number } | null>(null);
-  const pinchState = useRef<{ startDist: number; startScale: number } | null>(null);
-  const pointers = useRef(new Map<number, { x: number; y: number }>());
-  const lightboxRef = useRef<HTMLDivElement>(null);
-  const returnFocusRef = useRef<HTMLElement | null>(null);
-  const reducedMotion = useRef(false);
-
-  useEffect(() => {
-    reducedMotion.current = prefersReducedMotion();
-  }, []);
+  // Reactive, SSR-safe read of prefers-reduced-motion (no setState-in-effect).
+  const motionAllowed = useSyncExternalStore(
+    subscribeReducedMotion,
+    () => !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    () => true,
+  );
 
   const count = images.length;
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ pointerId: number; startX: number; startY: number; dx: number; moved: boolean; aborted: boolean } | null>(null);
+  const suppressClick = useRef(false);
+  const pinch = useRef<{ startDist: number; startScale: number } | null>(null);
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const lightboxRef = useRef<HTMLDivElement>(null);
+  const returnFocus = useRef<HTMLElement | null>(null);
 
-  /* ---------- stack cycling ---------- */
+  const goTo = useCallback(
+    (next: number) => {
+      setIndex(Math.min(count - 1, Math.max(0, next)));
+    },
+    [count],
+  );
 
-  // Wheel / drag on the stack cycles the top card to the back with an
-  // overshoot-and-settle (the transition bezier below supplies the overshoot).
-  const cycle = useCallback(() => {
-    setActiveIndex((i) => (i + 1) % count);
-  }, [count]);
+  // Focus the lightbox when it opens so Esc/arrows land on it immediately.
+  useEffect(() => {
+    if (lightboxIndex !== null) lightboxRef.current?.focus();
+  }, [lightboxIndex]);
 
-  const handleWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
-    if (Math.abs(event.deltaY) < 8 && Math.abs(event.deltaX) < 8) return;
-    event.preventDefault();
-    cycle();
-  };
+  /* ---------- carousel drag ---------- */
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0) return;
-    dragState.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY };
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    drag.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, dx: 0, moved: false, aborted: false };
+    setDragging(true);
+    // Don't setPointerCapture yet — we claim the gesture only once horizontal
+    // intent is established, so vertical touch scrolling stays native.
   };
 
   const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
-    const drag = dragState.current;
-    if (!drag || drag.pointerId !== event.pointerId) return;
-    const dx = event.clientX - drag.startX;
-    const dy = event.clientY - drag.startY;
-    if (dx * dx + dy * dy > 36) setDragOffset({ x: dx, y: dy });
+    const d = drag.current;
+    if (!d || d.pointerId !== event.pointerId || d.aborted) return;
+    const dx = event.clientX - d.startX;
+    const dy = event.clientY - d.startY;
+
+    if (!d.moved) {
+      // Intent resolution: wait for a clear direction before committing.
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+      if (Math.abs(dy) > Math.abs(dx)) {
+        d.aborted = true; // vertical gesture — hand it back to page scroll
+        setDragging(false);
+        return;
+      }
+      d.moved = true;
+      viewportRef.current?.setPointerCapture(event.pointerId);
+    }
+
+    // Rubber band: resistance when dragging past either end.
+    const atStart = index === 0 && dx > 0;
+    const atEnd = index === count - 1 && dx < 0;
+    d.dx = atStart || atEnd ? dx * 0.3 : dx;
+    setDragPx(d.dx);
   };
 
-  const handlePointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
-    const drag = dragState.current;
-    dragState.current = null;
-    setDragOffset(null);
-    if (!drag || drag.pointerId !== event.pointerId) return;
-    const dx = event.clientX - drag.startX;
-    const dy = event.clientY - drag.startY;
-    if (dx * dx + dy * dy > DRAG_THRESHOLD * DRAG_THRESHOLD) cycle();
+  const endDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const d = drag.current;
+    drag.current = null;
+    setDragging(false);
+    suppressClick.current = d ? d.moved : false;
+    setDragPx(0);
+    if (!d || d.pointerId !== event.pointerId || d.aborted || !d.moved) return;
+    const width = viewportRef.current?.offsetWidth ?? 1;
+    const threshold = Math.max(48, width * SNAP_THRESHOLD_RATIO);
+    if (d.dx <= -threshold) goTo(index + 1);
+    else if (d.dx >= threshold) goTo(index - 1);
+  };
+
+  // Click after a real drag must not open the lightbox.
+  const handleFigureClick = (figure: number, event: ReactMouseEvent<HTMLButtonElement>) => {
+    if (suppressClick.current) {
+      suppressClick.current = false;
+      return;
+    }
+    openLightbox(figure, event.currentTarget);
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      goTo(index + 1);
+    } else if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      goTo(index - 1);
+    }
   };
 
   /* ---------- lightbox ---------- */
 
-  const openLightbox = (index: number, trigger: HTMLElement) => {
-    returnFocusRef.current = trigger;
+  const openLightbox = (figure: number, trigger: HTMLElement) => {
+    returnFocus.current = trigger;
     setZoom(ZOOM_RESET);
-    if (!reducedMotion.current && typeof document.startViewTransition === "function") {
-      document.startViewTransition(() => setLightboxIndex(index));
+    if (motionAllowed && typeof document.startViewTransition === "function") {
+      document.startViewTransition(() => setLightboxIndex(figure));
     } else {
-      setLightboxIndex(index);
+      setLightboxIndex(figure);
     }
   };
 
   const closeLightbox = useCallback(() => {
-    const finish = () => returnFocusRef.current?.focus();
-    if (!reducedMotion.current && typeof document.startViewTransition === "function") {
+    const finish = () => returnFocus.current?.focus();
+    if (motionAllowed && typeof document.startViewTransition === "function") {
       document.startViewTransition(() => {
         setLightboxIndex(null);
         setZoom(ZOOM_RESET);
-        // after the DOM update, so the figure is back before focus moves
         requestAnimationFrame(finish);
       });
     } else {
@@ -115,7 +169,7 @@ export default function FigureStack({ slug, images, title }: { slug: string; ima
       setZoom(ZOOM_RESET);
       finish();
     }
-  }, []);
+  }, [motionAllowed]);
 
   const stepLightbox = useCallback(
     (delta: number) => {
@@ -131,13 +185,8 @@ export default function FigureStack({ slug, images, title }: { slug: string; ima
       const scale = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z.scale * factor));
       if (scale === MIN_ZOOM) return ZOOM_RESET;
       if (cx === undefined || cy === undefined) return { ...z, scale };
-      // keep the point under the cursor stationary
       const ratio = scale / z.scale;
-      return {
-        scale,
-        x: cx - ratio * (cx - z.x),
-        y: cy - ratio * (cy - z.y),
-      };
+      return { scale, x: cx - ratio * (cx - z.x), y: cy - ratio * (cy - z.y) };
     });
   }, []);
 
@@ -151,6 +200,33 @@ export default function FigureStack({ slug, images, title }: { slug: string; ima
       const rect = event.currentTarget.getBoundingClientRect();
       zoomAt(event.deltaY > 0 ? 1 / 1.2 : 1.2, event.clientX - rect.left, event.clientY - rect.top);
     }
+  };
+
+  const handleLightboxPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (pointers.current.size === 2) {
+      const [a, b] = [...pointers.current.values()];
+      pinch.current = { startDist: Math.hypot(a.x - b.x, a.y - b.y), startScale: zoom.scale };
+    } else if (zoom.scale > 1) {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    }
+  };
+
+  const handleLightboxPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!pointers.current.has(event.pointerId)) return;
+    pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (pinch.current && pointers.current.size === 2) {
+      const [a, b] = [...pointers.current.values()];
+      const dist = Math.hypot(a.x - b.x, a.y - b.y);
+      zoomAt((pinch.current.startScale * dist) / pinch.current.startDist / zoom.scale);
+    } else if (zoom.scale > 1) {
+      setZoom((z) => (z.scale > 1 ? { ...z, x: z.x + event.movementX, y: z.y + event.movementY } : z));
+    }
+  };
+
+  const handleLightboxPointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+    pointers.current.delete(event.pointerId);
+    if (pointers.current.size < 2) pinch.current = null;
   };
 
   // Lightbox keyboard: Esc close, arrows between figures, +/-/0 zoom, Tab trap.
@@ -183,7 +259,7 @@ export default function FigureStack({ slug, images, title }: { slug: string; ima
         setZoom(ZOOM_RESET);
         return;
       case "Tab": {
-        const focusables = lightboxRef.current?.querySelectorAll<HTMLElement>("button, [href]");
+        const focusables = lightboxRef.current?.querySelectorAll<HTMLElement>("button");
         if (!focusables || focusables.length === 0) return;
         const first = focusables[0];
         const last = focusables[focusables.length - 1];
@@ -194,151 +270,100 @@ export default function FigureStack({ slug, images, title }: { slug: string; ima
           event.preventDefault();
           first.focus();
         }
+        return;
       }
     }
   };
 
-  // Body scroll lock + initial focus while the lightbox is open.
-  useEffect(() => {
-    if (lightboxIndex === null) return;
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    lightboxRef.current?.focus();
-    return () => {
-      document.body.style.overflow = previous;
-    };
-  }, [lightboxIndex]);
-
-  /* ---------- pinch (two-pointer) + pan inside the lightbox ---------- */
-
-  const handleLightboxPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
-    if (pointers.current.size === 2) {
-      const [a, b] = [...pointers.current.values()];
-      pinchState.current = { startDist: Math.hypot(a.x - b.x, a.y - b.y), startScale: zoom.scale };
-    }
-  };
-
-  const handleLightboxPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!pointers.current.has(event.pointerId)) return;
-    pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
-
-    if (pointers.current.size === 2 && pinchState.current) {
-      const [a, b] = [...pointers.current.values()];
-      const dist = Math.hypot(a.x - b.x, a.y - b.y);
-      zoomAt((dist / pinchState.current.startDist) * pinchState.current.startScale);
-      return;
-    }
-    // drag to pan (critically damped: 1:1, no smoothing)
-    if (zoom.scale > 1) {
-      setZoom((z) => ({ ...z, x: z.x + event.movementX, y: z.y + event.movementY }));
-    }
-  };
-
-  const handleLightboxPointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
-    pointers.current.delete(event.pointerId);
-    if (pointers.current.size < 2) pinchState.current = null;
-  };
-
-  /* ---------- rendering ---------- */
-
-  const motionAllowed = typeof window === "undefined" ? true : !prefersReducedMotion();
-
-  // Every figure has a unique view-transition-name at rest; while the
-  // lightbox is open the name *moves* to the lightbox image (only one element
-  // may carry a given name), so open and close both animate as shared-element
-  // transitions. The first figure's rest name is the card→detail name (§4.4).
-  const figureName = (index: number) => (index === 0 ? `thumb-${slug}` : `fig-${slug}-${index}`);
-  const figureSharedStyle = (index: number): CSSProperties =>
-    lightboxIndex === index ? {} : { viewTransitionName: figureName(index) };
+  const trackTransform = `translateX(calc(${index * -100}% + ${dragPx}px))`;
 
   if (count === 0) return null;
 
   return (
-    <div className="mt-step-5">
-      {/* mono caption tab — Figure N / M */}
-      <div className="mb-3 inline-block border-2 border-line bg-paper px-3 py-1 font-mono text-xs shadow-rest">
-        Figure {activeIndex + 1} / {count} — {title}
-      </div>
-
-      {/* the fanned stack */}
-      <div
-        role="group"
-        aria-label={`Screenshots for ${title}, figure ${activeIndex + 1} of ${count}`}
-        className="relative"
-        onWheel={handleWheel}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerLeave={handlePointerUp}
-        style={{ touchAction: "pan-y" }}
-      >
-        {images.map((src, index) => {
-          const depth = (index - activeIndex + count) % count;
-          const isTop = depth === 0;
-          const rotation = motionAllowed ? STACK_ROTATIONS[depth % STACK_ROTATIONS.length] : 0;
-          const isDragging = dragOffset !== null && isTop;
-
-          return (
-            <figure
-              key={src}
-              className={[
-                "border-2 border-line bg-paper p-2 shadow-rest",
-                isTop
-                  ? "relative cursor-grab select-none active:cursor-grabbing"
-                  : `pointer-events-none absolute inset-x-0 top-0`,
-              ].join(" ")}
-              style={{
-                zIndex: count - depth,
-                // Flat under reduced motion; fanned otherwise. Only the top
-                // card follows the drag; deeper cards stay put.
-                transform: motionAllowed
-                  ? `translateY(${depth * STACK_DEPTH_STEP}px) rotate(${rotation}deg) scale(${1 - depth * 0.02})${
-                      isDragging ? ` translate(${dragOffset.x}px, ${dragOffset.y}px)` : ""
-                    }`
-                  : undefined,
-                transition: motionAllowed
-                  ? "transform 0.4s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 0.3s ease-out"
-                  : undefined,
-                // Reduced-motion crossfade: only the active figure is visible.
-                opacity: motionAllowed || isTop ? 1 : 0,
-              }}
-            >
+    <section aria-label={`Screenshots of ${title}`} className="mt-step-4">
+      {/* header row: mono label + counter + controls */}
+      <div className="flex items-baseline justify-between border-t border-line pt-3">
+        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-soft">Screenshots</p>
+        <div className="flex items-center gap-4">
+          <p className="font-mono text-sm tabular-nums text-ink-soft" aria-live="polite">
+            {String(index + 1).padStart(2, "0")} / {String(count).padStart(2, "0")}
+          </p>
+          {count > 1 ? (
+            <div className="flex gap-1">
               <button
                 type="button"
-                onClick={(event) => openLightbox(index, event.currentTarget)}
-                aria-label={`Open figure ${index + 1} of ${count} in lightbox`}
-                className="block w-full"
+                onClick={() => goTo(index - 1)}
+                disabled={index === 0}
+                aria-label="Previous screenshot"
+                className="px-2 py-0.5 font-mono text-base leading-none transition-colors duration-150 hover:text-accent disabled:opacity-25"
+              >
+                ←
+              </button>
+              <button
+                type="button"
+                onClick={() => goTo(index + 1)}
+                disabled={index === count - 1}
+                aria-label="Next screenshot"
+                className="px-2 py-0.5 font-mono text-base leading-none transition-colors duration-150 hover:text-accent disabled:opacity-25"
+              >
+                →
+              </button>
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      {/* viewport */}
+      <div
+        ref={viewportRef}
+        tabIndex={0}
+        role="group"
+        aria-roledescription="carousel"
+        aria-label={`Screenshot ${index + 1} of ${count}. Use arrow keys to change, click a screenshot to enlarge.`}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onKeyDown={handleKeyDown}
+        className="mt-3 touch-pan-y select-none overflow-hidden border border-line bg-paper-raised outline-none"
+      >
+        <div
+          className="flex"
+          style={{
+            transform: trackTransform,
+            // Sharp during drag; smooth snap on release. Never transitions under reduced motion.
+            transition: dragging || !motionAllowed ? "none" : "transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1)",
+          }}
+        >
+          {images.map((src, i) => (
+            <figure key={src} className="w-full shrink-0" style={{ viewTransitionName: figureName(i) } as CSSProperties}>
+              <button
+                type="button"
+                onClick={(event) => handleFigureClick(i, event)}
+                aria-label={`Open screenshot ${i + 1} of ${count} fullscreen`}
+                className="block w-full cursor-zoom-in"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={src}
-                  alt={`${title} screenshot ${index + 1}`}
-                  loading={isTop ? "eager" : "lazy"}
+                  alt={`${title} screenshot ${i + 1}`}
+                  loading={i === 0 ? "eager" : "lazy"}
                   decoding="async"
                   draggable={false}
-                  className="pointer-events-none w-full bg-ink/5"
-                  style={figureSharedStyle(index)}
+                  className="pointer-events-none block w-full"
                 />
               </button>
-              <figcaption className="mt-2 flex items-baseline justify-between font-mono text-sm text-ink-soft">
-                <span>Figure {index + 1}</span>
-                <span>{title}</span>
+              <figcaption className="border-t border-line px-4 py-2 font-mono text-xs text-ink-soft">
+                Fig. {i + 1} — {title}
               </figcaption>
             </figure>
-          );
-        })}
-        {/* spacer giving the stack its height: top figure + fanned depth */}
-        <div
-          aria-hidden="true"
-          className={motionAllowed ? "invisible" : "hidden"}
-          style={{ paddingTop: (count - 1) * STACK_DEPTH_STEP }}
-        />
+          ))}
+        </div>
       </div>
 
       {count > 1 ? (
-        <p className="mt-3 font-mono text-xs text-ink-soft" aria-hidden="true">
-          scroll / drag to cycle — click to open
+        <p className="mt-2 font-mono text-xs text-ink-soft" aria-hidden="true">
+          drag sideways to flip · click to enlarge
         </p>
       ) : null}
 
@@ -356,50 +381,30 @@ export default function FigureStack({ slug, images, title }: { slug: string; ima
           onPointerMove={handleLightboxPointerMove}
           onPointerUp={handleLightboxPointerUp}
           onPointerLeave={handleLightboxPointerUp}
-          className="fixed inset-0 z-50 flex flex-col bg-paper/95 outline-none"
+          className="fixed inset-0 z-50 flex flex-col bg-ink/95 outline-none"
         >
-          <div className="flex items-center justify-between border-b-2 border-line bg-paper px-4 py-2">
-            <span className="font-mono text-xs">
-              Figure {lightboxIndex + 1} / {count} — {Math.round(zoom.scale * 100)}%
+          <div className="flex items-center justify-between border-b border-line px-4 py-3 font-mono text-xs text-ink-soft">
+            <span>
+              Fig. {lightboxIndex + 1} / {count} — {title}
             </span>
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => zoomAt(1.25)}
-                aria-label="Zoom in"
-                className="border-2 border-line bg-paper px-2 py-0.5 font-mono text-sm transition-[transform,box-shadow,background-color] duration-150 ease-[cubic-bezier(0.2,0.9,0.3,1)] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-amber hover:shadow-lift active:translate-x-0.5 active:translate-y-0.5 active:shadow-press"
-              >
+              <button type="button" onClick={() => zoomAt(1.25)} aria-label="Zoom in" className="px-2 py-0.5 transition-colors duration-150 hover:text-accent">
                 +
               </button>
-              <button
-                type="button"
-                onClick={() => zoomAt(0.8)}
-                aria-label="Zoom out"
-                className="border-2 border-line bg-paper px-2 py-0.5 font-mono text-sm transition-[transform,box-shadow,background-color] duration-150 ease-[cubic-bezier(0.2,0.9,0.3,1)] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-amber hover:shadow-lift active:translate-x-0.5 active:translate-y-0.5 active:shadow-press"
-              >
+              <button type="button" onClick={() => zoomAt(0.8)} aria-label="Zoom out" className="px-2 py-0.5 transition-colors duration-150 hover:text-accent">
                 −
               </button>
-              <button
-                type="button"
-                onClick={() => setZoom(ZOOM_RESET)}
-                aria-label="Reset zoom"
-                className="border-2 border-line bg-paper px-2 py-0.5 font-mono text-sm transition-[transform,box-shadow,background-color] duration-150 ease-[cubic-bezier(0.2,0.9,0.3,1)] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:bg-amber hover:shadow-lift active:translate-x-0.5 active:translate-y-0.5 active:shadow-press"
-              >
-                0
+              <button type="button" onClick={() => setZoom(ZOOM_RESET)} aria-label="Reset zoom" className="px-2 py-0.5 transition-colors duration-150 hover:text-accent">
+                1:1
               </button>
-              <button
-                type="button"
-                onClick={closeLightbox}
-                aria-label="Close lightbox"
-                className="border-2 border-line bg-magenta px-3 py-0.5 font-mono text-sm text-white transition-[transform,box-shadow] duration-150 ease-[cubic-bezier(0.2,0.9,0.3,1)] hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-lift active:translate-x-0.5 active:translate-y-0.5 active:shadow-press"
-              >
-                Esc ×
+              <button type="button" onClick={closeLightbox} aria-label="Close lightbox" className="ml-2 px-2 py-0.5 transition-colors duration-150 hover:text-accent">
+                esc ×
               </button>
             </div>
           </div>
           <div
             className={[
-              "flex flex-1 items-center justify-center overflow-hidden p-6",
+              "flex flex-1 items-center justify-center overflow-hidden p-4 sm:p-6",
               zoom.scale > 1 ? "cursor-grab active:cursor-grabbing" : "cursor-zoom-in",
             ].join(" ")}
             style={{ touchAction: zoom.scale > 1 ? "none" : "auto" }}
@@ -408,21 +413,20 @@ export default function FigureStack({ slug, images, title }: { slug: string; ima
             <img
               src={images[lightboxIndex]}
               alt={`${title} screenshot ${lightboxIndex + 1}`}
-              className="max-h-full max-w-full border-2 border-line bg-paper p-2 shadow-rest"
+              className="max-h-full max-w-full border border-line bg-paper-raised"
               draggable={false}
               style={{
-                ...(motionAllowed ? { viewTransitionName: figureName(lightboxIndex) } : {}),
+                viewTransitionName: figureName(lightboxIndex),
                 transform: `translate(${zoom.x}px, ${zoom.y}px) scale(${zoom.scale})`,
-                // critically damped: fast settle, no bounce
                 transition: motionAllowed ? "transform 0.15s cubic-bezier(0.2, 0.9, 0.3, 1)" : undefined,
               }}
             />
           </div>
-          <p className="border-t-2 border-line bg-paper px-4 py-2 text-center font-mono text-xs text-ink-soft">
+          <p className="border-t border-line px-4 py-2 text-center font-mono text-[11px] text-ink-soft">
             drag to pan · wheel / pinch / ± to zoom · ← → between figures · 0 to reset · esc to close
           </p>
         </div>
       ) : null}
-    </div>
+    </section>
   );
 }

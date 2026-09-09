@@ -12,7 +12,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const project = getProjectBySlug(slug);
   if (!project) return { title: "Project not found" };
-  return { title: `${project.title} — Alex Carter`, description: project.tagline };
+  return { title: project.title, description: project.tagline };
 }
 
 export default async function ProjectDetailPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -26,114 +26,135 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div className="mx-auto w-full max-w-6xl px-6">
-      <div className="pt-step-4">
-        <TransitionLink href="/projects" className="text-sm text-ultramarine underline underline-offset-4 hover:no-underline">
-          All projects
+      <div className="pt-8">
+        <TransitionLink
+          href="/projects"
+          className="font-mono text-xs uppercase tracking-[0.18em] text-ink-soft transition-colors duration-150 hover:text-accent"
+        >
+          ← Index
         </TransitionLink>
       </div>
 
-      <div className="grid grid-cols-1 gap-step-3 pb-step-4 md:pb-step-5">
-        <aside className="order-2 space-y-step-2 md:order-1 md:sticky md:top-8 md:self-start">
-          <dl className="space-y-4 text-sm">
-            <div>
-              <dt className="font-medium text-ink-soft">Year</dt>
-              <dd className="font-mono">{project.year}</dd>
+      <article key={project.slug} className="page-enter pb-step-4">
+        {/* ————— Masthead ————— */}
+        <header className="mt-8 border-b border-line pb-8 md:mt-10">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-8 gap-y-2">
+            <h1 className="font-display text-4xl font-semibold tracking-[-0.02em] sm:text-6xl">
+              {project.title}
+            </h1>
+            <p className="font-mono text-sm text-ink-soft">{project.year}</p>
+          </div>
+          <p className="mt-4 max-w-2xl text-xl leading-relaxed text-ink-soft">{project.tagline}</p>
+        </header>
+
+        {/* ————— Body with metadata rail ————— */}
+        <div className="mt-10 grid gap-10 md:grid-cols-[1fr_16rem] lg:gap-16">
+          <div className="min-w-0">
+            {project.images.length > 0 ? (
+              <FigureStack slug={project.slug} images={project.images} title={project.title} />
+            ) : null}
+
+            <div className="mt-step-5 space-y-step-5">
+              {sections.map((section) =>
+                section.isRetrospective ? (
+                  <section key={section.title} className="border-l-2 border-accent pl-6">
+                    <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-accent">
+                      {section.title}
+                    </h2>
+                    <div className="case-study mt-4 max-w-2xl" dangerouslySetInnerHTML={{ __html: section.html }} />
+                  </section>
+                ) : (
+                  <section key={section.title} className="border-t border-line pt-8">
+                    <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-soft">
+                      {section.title}
+                    </h2>
+                    <div className="case-study mt-4 max-w-2xl" dangerouslySetInnerHTML={{ __html: section.html }} />
+                  </section>
+                ),
+              )}
             </div>
-            <div>
-              <dt className="font-medium text-ink-soft">Role</dt>
-              <dd className="leading-relaxed">{project.role}</dd>
-            </div>
-            <div>
-              <dt className="font-medium text-ink-soft">Stack</dt>
-              <dd>
-                <ul className="mt-1 space-y-0.5 font-mono">
-                  {project.techStack.map((tech) => (
-                    <li key={tech}>{tech}</li>
+          </div>
+
+
+          {/* Metadata rail */}
+          <aside className="order-first space-y-8 border-b border-line pb-8 md:order-last md:border-b-0 md:pt-1">
+            <dl className="space-y-6 text-sm">
+              <div>
+                <dt className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-soft">Role</dt>
+                <dd className="mt-1.5 leading-relaxed">{project.role}</dd>
+              </div>
+              <div>
+                <dt className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-soft">Stack</dt>
+                <dd>
+                  <ul className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[13px]">
+                    {project.techStack.map((tech) => (
+                      <li key={tech}>{tech}</li>
+                    ))}
+                  </ul>
+                </dd>
+              </div>
+            </dl>
+
+            {project.links && (project.links.liveDemo || project.links.repo || (project.links.other?.length ?? 0) > 0) ? (
+              <div>
+                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-soft">Links</p>
+                <ul className="mt-2 space-y-1.5 text-sm font-medium">
+                  {project.links.liveDemo ? (
+                    <li>
+                      <a href={project.links.liveDemo} className="text-accent">
+                        <span className="rule-draw">Live demo ↗</span>
+                      </a>
+                    </li>
+                  ) : null}
+                  {project.links.repo ? (
+                    <li>
+                      <a href={project.links.repo} className="text-accent">
+                        <span className="rule-draw">Repository ↗</span>
+                      </a>
+                    </li>
+                  ) : null}
+                  {project.links.other?.map((link) => (
+                    <li key={link.url}>
+                      <a href={link.url} className="text-accent">
+                        <span className="rule-draw">{link.label} ↗</span>
+                      </a>
+                    </li>
                   ))}
                 </ul>
-              </dd>
-            </div>
-          </dl>
-          {project.links && (project.links.liveDemo || project.links.repo || (project.links.other?.length ?? 0) > 0) ? (
-            <div className="border-t-2 border-line pt-4">
-              <p className="text-sm font-medium text-ink-soft">Links</p>
-              <ul className="mt-2 space-y-2 text-sm">
-                {project.links.liveDemo ? (
-                  <li>
-                    <a
-                      href={project.links.liveDemo}
-                      className="text-ultramarine underline underline-offset-4 hover:no-underline"
-                    >
-                      Live demo
-                    </a>
-                  </li>
-                ) : null}
-                {project.links.repo ? (
-                  <li>
-                    <a href={project.links.repo} className="text-ultramarine underline underline-offset-4 hover:no-underline">
-                      Repository
-                    </a>
-                  </li>
-                ) : null}
-                {project.links.other?.map((link) => (
-                  <li key={link.url}>
-                    <a href={link.url} className="text-ultramarine underline underline-offset-4 hover:no-underline">
-                      {link.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-        </aside>
+              </div>
+            ) : null}
 
-        <article key={project.slug} className="page-enter order-1 md:order-2">
-          <h1 className="font-display text-4xl font-bold tracking-tight sm:text-5xl">{project.title}</h1>
-          <p className="mt-3 max-w-2xl text-xl leading-relaxed text-ink-soft">{project.tagline}</p>
+            {project.highlights.length > 0 ? (
+              <div>
+                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-soft">Key facts</p>
+                <ul className="mt-2 space-y-3 text-sm leading-relaxed">
+                  {project.highlights.map((highlight) => (
+                    <li key={highlight} className="flex gap-2.5">
+                      <span aria-hidden="true" className="mt-0.5 font-mono text-accent">
+                        —
+                      </span>
+                      <span>{highlight}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </aside>
+        </div>
+      </article>
 
-          {project.highlights.length > 0 ? (
-            <section className="mt-step-3 border-2 border-line bg-mint/10 p-6 sm:p-8">
-              <h2 className="font-display text-lg font-bold tracking-tight">Key facts</h2>
-              <ul className="mt-step-2 space-y-2.5 border-l-4 border-mint pl-4">
-                {project.highlights.map((highlight) => (
-                  <li key={highlight} className="text-[17px] font-medium leading-relaxed">
-                    {highlight}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-
-          {project.images.length > 0 ? <FigureStack slug={project.slug} images={project.images} title={project.title} /> : null}
-
-          <div className="mt-step-5 space-y-step-5">
-            {sections.map((section, index) =>
-              section.isRetrospective ? (
-                <section key={section.title} className="border-2 border-line bg-mint/10 p-6 sm:p-8">
-                  <h2 className="font-display text-xl font-bold tracking-tight">{section.title}</h2>
-                  <div className="case-study mt-step-2 max-w-2xl" dangerouslySetInnerHTML={{ __html: section.html }} />
-                </section>
-              ) : (
-                <section key={section.title} className={index > 0 ? "border-t-2 border-mint pt-step-5" : undefined}>
-                  <h2 className="font-display text-2xl font-bold tracking-tight">{section.title}</h2>
-                  <div className="case-study mt-step-2 max-w-2xl" dangerouslySetInnerHTML={{ __html: section.html }} />
-                </section>
-              ),
-            )}
-          </div>
-        </article>
-      </div>
-
-      <div className="border-t-2 border-line py-step-4">
-        <p className="text-ink-soft">
-          Next project:{" "}
-          <TransitionLink
-            href={`/projects/${nextProject.slug}`}
-            className="font-medium text-ultramarine underline underline-offset-4 hover:no-underline"
-          >
-            {nextProject.title}
-          </TransitionLink>
-        </p>
+      {/* ————— Next project ————— */}
+      <div className="border-t border-line py-step-4 md:py-step-5">
+        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-soft">Next</p>
+        <TransitionLink
+          href={`/projects/${nextProject.slug}`}
+          className="group mt-2 inline-flex items-baseline gap-3 font-display text-2xl font-semibold tracking-tight transition-colors duration-200 hover:text-accent sm:text-4xl"
+        >
+          <span className="rule-draw">{nextProject.title}</span>
+          <span aria-hidden="true" className="text-accent transition-transform duration-200 group-hover:translate-x-1">
+            →
+          </span>
+        </TransitionLink>
       </div>
     </div>
   );

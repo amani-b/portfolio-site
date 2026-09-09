@@ -3,7 +3,7 @@ import ProjectCard from "@/components/ProjectCard";
 import Reveal from "@/components/Reveal";
 
 export const metadata = {
-  title: "Projects — Alex Carter",
+  title: "Index",
 };
 
 export default function ProjectsPage() {
@@ -11,22 +11,20 @@ export default function ProjectsPage() {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-6">
-      {/* Padding: rhythm lg/xl, matching the home hero and grid sections. Heading aligned to the
-          same 14rem rail as home (DESIGN-V2 Finding E fix). */}
-      <section className="grid grid-cols-1 gap-step-3 py-step-4 md:grid-cols-[14rem_1fr] md:py-step-5">
-        <div aria-hidden="true" />
-        <div>
-          <h1 className="font-display text-4xl font-bold tracking-tight">Selected work</h1>
-          <p className="mt-step-2 max-w-xl leading-relaxed text-ink-soft">
-            Things I have designed, built, and shipped, with the decisions and trade-offs written down honestly.
-          </p>
-        </div>
+      <section className="pb-step-4 pt-step-4 md:pb-step-5 md:pt-step-6">
+        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-soft">Index</p>
+        <h1 className="mt-4 max-w-3xl font-display text-4xl font-semibold leading-[1.05] tracking-[-0.02em] sm:text-6xl">
+          Everything I&rsquo;ve shipped, written down honestly.
+        </h1>
+        <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-soft">
+          Each entry records what it does, what it cost, and what I&rsquo;d do differently.
+        </p>
       </section>
 
-      <div className="grid grid-cols-1 gap-6 pb-step-5 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="border-b border-line pb-step-5">
         {projects.map((project, index) => (
-          <Reveal key={project.slug} delay={Math.min(index * 60, 300)}>
-            <ProjectCard project={project} />
+          <Reveal key={project.slug} delay={Math.min(index * 70, 280)}>
+            <ProjectCard project={project} index={index} />
           </Reveal>
         ))}
       </div>

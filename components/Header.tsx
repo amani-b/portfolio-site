@@ -2,31 +2,32 @@
 
 import { usePathname } from "next/navigation";
 import TransitionLink from "@/components/TransitionLink";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const links = [
-  { href: "/", label: "Home" },
-  { href: "/projects", label: "Projects" },
+  { href: "/", label: "Work" },
+  { href: "/projects", label: "Index" },
   { href: "/about", label: "About" },
 ];
 
 /**
- * Header with the route-aware active state DESIGN.md reserved Ultramarine for
- * (DESIGN-V2 Finding C fix): active link gets Ultramarine + 2px rule + aria-current.
- * Nav links use TransitionLink so route changes get the View Transition crossfade.
+ * Minimal notebook header: name set in display type, nav in mono micro-caps.
+ * The active route gets the site's only accent device — a solid orange dot —
+ * so state is communicated without recoloring text.
  */
 export default function Header() {
   const pathname = usePathname();
 
   return (
-    <header className="border-b-2 border-line bg-paper">
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-step-2">
+    <header className="border-b border-line">
+      <div className="mx-auto flex w-full max-w-6xl items-baseline justify-between px-6 py-5">
         <TransitionLink
           href="/"
-          className="inline-block font-display text-lg font-semibold tracking-tight transition-transform duration-150 ease-[cubic-bezier(0.2,0.9,0.3,1)] hover:text-ultramarine active:translate-x-0.5 active:translate-y-0.5"
+          className="font-display text-lg font-semibold tracking-tight transition-colors duration-150 hover:text-accent"
         >
           Alex Carter
         </TransitionLink>
-        <nav className="flex gap-6 text-sm">
+        <nav aria-label="Primary" className="flex gap-5 font-mono text-[11px] uppercase tracking-[0.18em] sm:gap-7">
           {links.map((link) => {
             const active = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
             return (
@@ -34,19 +35,21 @@ export default function Header() {
                 key={link.href}
                 href={link.href}
                 aria-current={active ? "page" : undefined}
-                className={
-                  active
-                    ? "border-b-2 border-ultramarine pb-0.5 font-medium text-ultramarine"
-                    : "inline-block border-b-2 border-transparent pb-0.5 transition-transform duration-150 ease-[cubic-bezier(0.2,0.9,0.3,1)] hover:text-ultramarine hover:underline hover:underline-offset-4 active:translate-x-0.5 active:translate-y-0.5"
-                }
+                className="group inline-flex items-center gap-1.5 transition-colors duration-150 hover:text-accent"
               >
+                <span
+                  aria-hidden="true"
+                  className={`inline-block h-1.5 w-1.5 rounded-full transition-opacity duration-150 ${
+                    active ? "bg-accent opacity-100" : "bg-accent opacity-0 group-hover:opacity-40"
+                  }`}
+                />
                 {link.label}
               </TransitionLink>
             );
           })}
+          <ThemeToggle />
         </nav>
       </div>
     </header>
   );
 }
-

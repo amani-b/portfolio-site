@@ -1,3 +1,11 @@
+# DESIGN.md
+
+> **SUPERSEDED.** The live design system is the "engineering notebook" direction
+> documented in the header of `app/globals.css` (warm bone paper, near-black ink,
+> International Orange accent, mono micro-labels, hairline rules). Everything
+> below is the retired V2 direction, kept for history.
+
+
 # DESIGN-V2 — Panel Review & Revised Direction
 
 **Status: implemented and authoritative. This file is now the site's DESIGN.md — Phases 1, 2a, 2b, and 3 of §5 are shipped. The original DESIGN.md critique references remain below as the record of what changed and why.**

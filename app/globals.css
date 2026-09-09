@@ -1,73 +1,87 @@
 @import "tailwindcss";
 
 /*
- * Palette — see DESIGN.md.
- * Light-mode hues are authoritative; dark mode brightens them on an ink-navy ground.
+ * ————————————————————————————————————————————————————————————————
+ *  ENGINEERING-NOTEBOOK DESIGN SYSTEM
+ *
+ *  One idea carries the whole site: a printed engineering notebook.
+ *  Warm bone paper, near-black ink, hairline rules, mono micro-labels,
+ *  and ONE accent — International Orange — reserved strictly for
+ *  interaction. Depth comes from hierarchy and whitespace, never blur
+ *  or heavy shadow. See DESIGN.md.
+ * ————————————————————————————————————————————————————————————————
  */
 :root {
-  --paper: #f2f4f8;
-  --ink: #23244e;
-  --ultramarine: #3542e8;
-  --mint: #0fa36b;
-  --amber: #ffb627;
-  --magenta: #d6336c;
-  --ink-soft: #4a4c7d;
-  --line: #23244e;
-  /* Graph-paper grid line — derived from ink so dark mode adapts automatically. */
-  --grid-line: color-mix(in srgb, var(--ink) 4%, transparent);
-  /*
-   * Elevation tokens (DESIGN-V2 §4.1) — hard offset shadows, zero blur.
-   * Depth comes from geometry, never from blur. Derived from --ink/--ultramarine
-   * so both themes adapt without separate values.
-   */
-  --elev-rest: 4px 4px 0 0 color-mix(in srgb, var(--ink) 18%, transparent);
-  --elev-lift: 6px 6px 0 0 var(--ultramarine);
-  --elev-press: 0 0 0 0 transparent;
+  --paper: #f7f5f0;
+  --paper-raised: #fffdf8;
+  --ink: #1a1914;
+  --ink-soft: #6e6a5e;
+  --line: color-mix(in srgb, var(--ink) 14%, transparent);
+  --line-strong: color-mix(in srgb, var(--ink) 32%, transparent);
+  --accent: #ff4d00;
+  --accent-wash: color-mix(in srgb, var(--accent) 6%, transparent);
+  color-scheme: light;
+}
+
+/*
+ * Theme model: the <html> element carries a `light` or `dark` class, set by an
+ * inline script in layout.tsx before first paint (stored preference, else the
+ * system preference). The media query below is the no-JS fallback so system
+ * dark users still get the dark theme without JavaScript.
+ * NOTE: the token block below is duplicated for the class and media-query
+ * variants — keep them in sync.
+ */
+:root.dark {
+  --paper: #14130f;
+  --paper-raised: #1c1a15;
+  --ink: #ece9e0;
+  --ink-soft: #a39e90;
+  --line: color-mix(in srgb, var(--ink) 18%, transparent);
+  --line-strong: color-mix(in srgb, var(--ink) 40%, transparent);
+  --accent: #ff6a2b;
+  --accent-wash: color-mix(in srgb, var(--accent) 10%, transparent);
+  color-scheme: dark;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --paper: #171a33;
-    --ink: #e7e9f8;
-    --ultramarine: #7a85ff;
-    --mint: #2bd48d;
-    --amber: #ffc64d;
-    --magenta: #f06a9a;
-    --ink-soft: #a9add4;
-    --line: #e7e9f8;
+  :root:not(.light):not(.dark) {
+    --paper: #14130f;
+    --paper-raised: #1c1a15;
+    --ink: #ece9e0;
+    --ink-soft: #a39e90;
+    --line: color-mix(in srgb, var(--ink) 18%, transparent);
+    --line-strong: color-mix(in srgb, var(--ink) 40%, transparent);
+    --accent: #ff6a2b;
+    --accent-wash: color-mix(in srgb, var(--accent) 10%, transparent);
+    color-scheme: dark;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  body {
+    transition:
+      background-color 0.25s ease,
+      color 0.25s ease;
   }
 }
 
 @theme inline {
   --color-paper: var(--paper);
+  --color-paper-raised: var(--paper-raised);
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
-  --color-ultramarine: var(--ultramarine);
-  --color-mint: var(--mint);
-  --color-amber: var(--amber);
-  --color-magenta: var(--magenta);
   --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-wash: var(--accent-wash);
   --font-display: var(--font-bricolage), sans-serif;
   --font-sans: var(--font-plex-sans), sans-serif;
   --font-mono: var(--font-plex-mono), monospace;
-  --shadow-rest: var(--elev-rest);
-  --shadow-lift: var(--elev-lift);
-  --shadow-press: var(--elev-press);
 }
 
 /*
- * Vertical rhythm scale — the ONLY spacing values used for section padding,
- * grid gaps, and stacked-block margins site-wide. Tailwind generates
- * utilities like `py-step-4`, `mt-step-3`, `gap-step-2`, `space-y-step-5` from these tokens.
- *
- *   step-1 = 8px   intra-element gaps (label → value)
- *   step-2 = 20px  element → element (heading → list, paragraph → paragraph)
- *   step-3 = 32px  block → block (heading → grid), hero top padding
- *   step-4 = 40px  section padding (mobile), page-top padding
- *   step-5 = 64px  section padding (desktop), major block separation
- *
- * NOTE: names MUST NOT be bare xs/sm/md/lg/xl — those keys shadow Tailwind's
- * container scale and turn `max-w-xl` into 4rem.
+ * Vertical rhythm — the ONLY spacing scale for section padding, grid gaps,
+ * and stacked-block margins. Tailwind generates py-step-4, gap-step-2, etc.
  */
 @theme {
   --spacing-step-1: 0.5rem;
@@ -75,27 +89,51 @@
   --spacing-step-3: 2rem;
   --spacing-step-4: 2.5rem;
   --spacing-step-5: 4rem;
+  --spacing-step-6: 6rem;
 }
 
 body {
   background-color: var(--paper);
-  /* Graph Paper is a material, not a color (DESIGN-V2 §4.2): a faint 24px grid. */
-  background-image:
-    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
-  background-size: 24px 24px;
   color: var(--ink);
 }
 
 /*
- * Page-to-page transitions (DESIGN-V2 §4.4). Route changes go through
- * <TransitionLink> → document.startViewTransition; here we keep the crossfade
- * quick (160ms) and opt fully out under reduced motion.
+ * The single accent device: an orange rule that draws itself under a link
+ * on hover. Used for primary links only — scarcity keeps it meaningful.
+ */
+.rule-draw {
+  background-image: linear-gradient(var(--accent), var(--accent));
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0% 1.5px;
+  transition: background-size 0.35s cubic-bezier(0.65, 0, 0.35, 1);
+}
+a:hover .rule-draw,
+.group:hover .rule-draw {
+  background-size: 100% 1.5px;
+}
+
+/* Already-drawn variant for headline emphasis on first paint. */
+.rule-drawn {
+  background-image: linear-gradient(var(--accent), var(--accent));
+  background-repeat: no-repeat;
+  background-position: 0 92%;
+  background-size: 100% 0.09em;
+}
+
+::selection {
+  background: var(--accent);
+  color: #fffdf8;
+}
+
+/*
+ * Page-to-page transitions: quick crossfade through <TransitionLink> →
+ * document.startViewTransition; fully opted out under reduced motion.
  */
 @media (prefers-reduced-motion: no-preference) {
   ::view-transition-old(root),
   ::view-transition-new(root) {
-    animation-duration: 160ms;
+    animation-duration: 180ms;
   }
 }
 
@@ -108,93 +146,61 @@ body {
   }
 }
 
-/*
- * Arrival gesture for the case-study page: the article rises and settles once
- * on entry (re-keyed per project, so navigating "next project" replays it).
- * from-only keyframes + `both` = the natural layout is the final state.
- */
+/* Case-study page arrival: the article rises and settles once, re-keyed per project. */
 @keyframes page-enter {
   from {
     opacity: 0;
-    translate: 0 12px;
+    translate: 0 16px;
   }
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .page-enter {
-    animation: page-enter 0.4s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+    animation: page-enter 0.5s cubic-bezier(0.2, 0.9, 0.3, 1) both;
   }
 }
 
-/* Highlighter Amber text selection, per DESIGN.md */
-::selection {
-  background: var(--amber);
-  color: #23244e;
-}
-
-/* Visible keyboard focus on every interactive element */
-:focus-visible {
-  outline: 2px solid var(--ultramarine);
-  outline-offset: 2px;
-}
-
-/*
- * The one deliberate animation: an amber highlighter sweep across the hero's
- * key phrase, followed by a single fade of the intro paragraph. Base styles
- * are the FINAL state; keyframes only override the start, so with
- * prefers-reduced-motion the page simply renders finished — no motion.
- */
-@keyframes hl-sweep {
-  from {
-    background-size: 0% 100%;
-  }
-  to {
-    background-size: 100% 100%;
-  }
-}
-
-@keyframes fade-in {
+/* Hero arrival: content rises, then the orange rule sweeps beneath the key phrase. */
+@keyframes rise {
   from {
     opacity: 0;
+    translate: 0 18px;
+  }
+}
+
+@keyframes rule-sweep {
+  from {
+    background-size: 0% 0.09em;
   }
   to {
-    opacity: 1;
+    background-size: 100% 0.09em;
   }
 }
 
-.hl-sweep {
-  background-image: linear-gradient(var(--amber), var(--amber));
-  background-repeat: no-repeat;
-  background-position: 0 78%;
-  background-size: 100% 38%;
-  animation: hl-sweep 0.7s cubic-bezier(0.65, 0, 0.35, 1) 0.4s both;
-}
-
-.fade-in {
-  animation: fade-in 0.5s ease-out 0.9s both;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .hl-sweep,
-  .fade-in {
-    animation: none;
+@media (prefers-reduced-motion: no-preference) {
+  .rise {
+    animation: rise 0.6s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+  }
+  .rise-2 {
+    animation: rise 0.6s cubic-bezier(0.2, 0.9, 0.3, 1) 0.12s both;
+  }
+  .rule-sweep {
+    animation: rule-sweep 0.7s cubic-bezier(0.65, 0, 0.35, 1) 0.55s both;
   }
 }
 
 /*
- * Scroll entrances (DESIGN-V2 §4.3): one-shot rise-and-settle. Base styles are
- * the FINAL state; the hidden start state is applied only when JS is present
- * (html.js, set by an inline script in layout.tsx) and motion is allowed, so
- * no-JS and prefers-reduced-motion users simply see the finished page.
- * Stagger via --reveal-delay, set inline by <Reveal>.
+ * Scroll entrances: one-shot rise-and-settle. The hidden start state applies
+ * only when JS is present (html.js) and motion is allowed — no-JS and
+ * prefers-reduced-motion users simply see the finished page.
  */
 @media (prefers-reduced-motion: no-preference) {
   .js .reveal {
     opacity: 0;
-    translate: 0 12px;
+    translate: 0 14px;
     transition:
-      opacity 0.4s ease-out,
-      translate 0.4s cubic-bezier(0.2, 0.9, 0.3, 1);
+      opacity 0.45s ease-out,
+      translate 0.45s cubic-bezier(0.2, 0.9, 0.3, 1);
     transition-delay: var(--reveal-delay, 0ms);
   }
   .js .reveal.is-visible {
@@ -203,39 +209,59 @@ body {
   }
 }
 
-
-/* Case-study body styling (rendered markdown) */
+/* ————— Rendered case-study body (markdown) ————— */
+.case-study {
+  color: color-mix(in srgb, var(--ink) 90%, var(--ink-soft));
+}
 .case-study p {
   margin-bottom: 1.25rem;
-  line-height: 1.65;
+  line-height: 1.7;
 }
 .case-study ul {
   margin-bottom: 1.25rem;
-  list-style: disc;
-  padding-left: 1.5rem;
+  list-style: none;
+  padding-left: 0;
 }
 .case-study li {
-  margin-bottom: 0.375rem;
-  line-height: 1.6;
+  margin-bottom: 0.625rem;
+  padding-left: 1.25rem;
+  position: relative;
+  line-height: 1.65;
+}
+.case-study li::before {
+  content: "—";
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+  font-family: var(--font-mono);
 }
 .case-study strong {
   font-weight: 600;
+  color: var(--ink);
 }
 .case-study code {
   font-family: var(--font-mono);
-  font-size: 0.875em;
-  background: color-mix(in srgb, var(--mint) 14%, transparent);
+  font-size: 0.85em;
+  background: var(--accent-wash);
   padding: 0.1em 0.35em;
+  border-radius: 2px;
 }
 .case-study a {
-  color: var(--ultramarine);
+  color: var(--accent);
   text-decoration: underline;
+  text-decoration-thickness: 1px;
   text-underline-offset: 3px;
 }
 .case-study h3 {
   font-family: var(--font-display);
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   font-weight: 600;
-  margin: 2rem 0 0.75rem;
+  letter-spacing: -0.01em;
+  margin: 1.75rem 0 0.75rem;
 }
 
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
