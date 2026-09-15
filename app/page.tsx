@@ -10,13 +10,13 @@ export default function Home() {
   return (
     <>
       {/* ————— Hero ————— */}
-      <section className="mx-auto w-full max-w-6xl px-6 pb-step-4 pt-step-4 md:pb-step-5 md:pt-step-6">
-        <p className="rise font-mono text-[11px] uppercase tracking-[0.18em] text-ink-soft">
+      <section className="mx-auto w-full max-w-6xl px-5 pt-step-4 pb-step-4 md:px-6 md:pt-step-6 md:pb-step-5">
+        <p className="rise font-mono text-[11px] tracking-[0.18em] text-ink-soft uppercase">
           Amanuel Berhanu — 3rd-year computer science student
         </p>
-        <h1 className="rise-2 mt-4 max-w-4xl font-display text-4xl font-semibold leading-[1.05] tracking-[-0.02em] sm:text-6xl md:text-7xl">
-          I build systems that{" "}
-          <span className="rule-sweep rule-drawn">survive contact</span> with production.
+        <h1 className="rise-2 balance-sm mt-4 max-w-4xl font-display text-[2.4rem] leading-[1.05] font-semibold tracking-[-0.02em] sm:text-6xl md:text-7xl">
+          I build systems that <span className="rule-sweep rule-drawn">survive contact</span> with
+          production.
         </h1>
         <p className="rise-2 mt-6 max-w-xl text-lg leading-relaxed text-ink-soft">
           End-to-end: data models, pipelines, and the interfaces on top of them — with honest
@@ -33,7 +33,7 @@ export default function Home() {
         <section className="border-y border-line bg-paper-raised">
           <div className="mx-auto w-full max-w-6xl px-6 py-step-4 md:py-step-5">
             <div className="flex items-baseline justify-between">
-              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-accent">
+              <p className="font-mono text-[11px] tracking-[0.18em] text-accent uppercase">
                 Featured — {flagship.title}
               </p>
               <p className="font-mono text-xs text-ink-soft">{flagship.year}</p>
@@ -49,17 +49,19 @@ export default function Home() {
                   <img
                     src={flagship.images[0]}
                     alt={`${flagship.title} screenshot`}
-                    className="aspect-video w-full object-cover object-top transition-transform duration-700 ease-out group-hover:scale-[1.015]"
+                    className="aspect-[4/3] w-full object-cover object-top transition-transform duration-700 ease-out group-hover:scale-[1.015] group-active:scale-[1.03] md:aspect-video"
                   />
                 </div>
                 <div className="mt-6 grid gap-6 md:grid-cols-[1fr_20rem] md:gap-10">
                   <div>
-                    <h2 className="font-display text-3xl font-semibold tracking-tight transition-colors duration-200 group-hover:text-accent sm:text-5xl">
+                    <h2 className="balance-sm font-display text-3xl font-semibold tracking-tight transition-colors duration-200 group-hover:text-accent group-active:text-accent sm:text-5xl">
                       <span className="rule-draw">{flagship.title}</span>
                     </h2>
-                    <p className="mt-3 max-w-xl text-lg leading-relaxed text-ink-soft">{flagship.tagline}</p>
+                    <p className="mt-3 max-w-xl text-lg leading-relaxed text-ink-soft">
+                      {flagship.tagline}
+                    </p>
                   </div>
-                  <ul className="space-y-3 border-t border-line pt-4 text-[15px] leading-relaxed md:border-t-0 md:border-l md:pl-6 md:pt-0">
+                  <ul className="space-y-3 border-t border-line pt-4 text-[15px] leading-relaxed md:border-t-0 md:border-l md:pt-0 md:pl-6">
                     {flagship.highlights.slice(0, 3).map((highlight) => (
                       <li key={highlight} className="flex gap-3">
                         <span aria-hidden="true" className="mt-0.5 font-mono text-accent">
@@ -70,9 +72,12 @@ export default function Home() {
                     ))}
                   </ul>
                 </div>
-                <p className="mt-6 inline-flex items-center gap-2 font-mono text-xs uppercase tracking-[0.18em]">
+                <p className="mt-6 inline-flex items-center gap-2 font-mono text-xs tracking-[0.18em] uppercase">
                   Read the case study
-                  <span aria-hidden="true" className="text-accent transition-transform duration-200 group-hover:translate-x-1">
+                  <span
+                    aria-hidden="true"
+                    className="text-accent transition-transform duration-200 group-hover:translate-x-1"
+                  >
                     →
                   </span>
                 </p>
@@ -83,11 +88,14 @@ export default function Home() {
       ) : null}
 
       {/* ————— Index ————— */}
-      <section className="mx-auto w-full max-w-6xl px-6 py-step-4 md:py-step-5">
+      <section className="mx-auto w-full max-w-6xl px-5 py-step-4 md:px-6 md:py-step-5">
         <div className="flex items-baseline justify-between">
-          <h2 className="font-mono text-[11px] uppercase tracking-[0.18em] text-ink-soft">01 — Work</h2>
+          <h2 className="font-mono text-[11px] tracking-[0.18em] text-ink-soft uppercase">
+            01 — Work
+          </h2>
           <p className="font-mono text-xs text-ink-soft">
-            {rest.length + (flagship ? 1 : 0)} project{(rest.length + (flagship ? 1 : 0)) === 1 ? "" : "s"}
+            {rest.length + (flagship ? 1 : 0)} project
+            {rest.length + (flagship ? 1 : 0) === 1 ? "" : "s"}
           </p>
         </div>
         <div className="mt-6 border-b border-line">

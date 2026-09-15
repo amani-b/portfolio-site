@@ -3,13 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { flushSync } from "react-dom";
-import type { MouseEvent, ReactNode } from "react";
+import type { ComponentProps, MouseEvent } from "react";
 
-type TransitionLinkProps = {
+type TransitionLinkProps = Omit<ComponentProps<typeof Link>, "href" | "onClick"> & {
   href: string;
-  children: ReactNode;
-  className?: string;
-  prefetch?: boolean;
 };
 
 /**
@@ -23,8 +20,11 @@ type TransitionLinkProps = {
  * The flushSync(router.push) recipe forces the router state update (served from
  * the Link prefetch when available) to render synchronously inside the
  * transition callback, so the incoming snapshot is the new page.
+ *
+ * Every other Link prop (aria-current, aria-label, title, …) passes straight
+ * through, so nav links can carry their own state semantics.
  */
-export default function TransitionLink({ href, children, className, prefetch }: TransitionLinkProps) {
+export default function TransitionLink({ href, children, ...rest }: TransitionLinkProps) {
   const router = useRouter();
 
   function handleClick(event: MouseEvent<HTMLAnchorElement>) {
@@ -42,7 +42,7 @@ export default function TransitionLink({ href, children, className, prefetch }: 
   }
 
   return (
-    <Link href={href} className={className} prefetch={prefetch} onClick={handleClick}>
+    <Link href={href} {...rest} onClick={handleClick}>
       {children}
     </Link>
   );

@@ -42,3 +42,6 @@ next-env.d.ts
 
 # local dev verification artifacts (scripts/visual-check.cjs output)
 /screenshots/
+
+# local agent workspace (memory, session logs) - not part of the product
+/.workbuddy-ai/

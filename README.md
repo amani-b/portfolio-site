@@ -34,7 +34,7 @@ The site is fully static (every page is prerendered at build time) and deploys t
 2. In Vercel, "Add New Project" → import the repo.
 3. Accept the defaults (framework preset: Next.js; build command `next build`). Deploy.
 
-Set the production URL in two places once it's known: `metadataBase` in `app/layout.tsx`, and the real email/GitHub/LinkedIn links in `app/about/page.tsx` and `components/Footer.tsx`.
+Set the production URL in two places once it's known: `metadataBase` in `app/layout.tsx`, and the real email/GitHub links in `app/about/page.tsx` and `components/Footer.tsx`.
 
 ### Hosting elsewhere (static export)
 

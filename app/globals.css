@@ -9,6 +9,25 @@
  *  and ONE accent — International Orange — reserved strictly for
  *  interaction. Depth comes from hierarchy and whitespace, never blur
  *  or heavy shadow. See DESIGN.md.
+ *
+ *  ONE SYSTEM, TWO COMPOSITIONS. The breakpoint is `md` (768px): below
+ *  it the site is composed for a hand, above it for a desk. It is the
+ *  same notebook in both — same palette, same type, same voice, same
+ *  sections, same destinations. What changes is the composition:
+ *
+ *    · navigation moves from the top baseline to the bottom edge, where
+ *      a thumb can reach it (components/BottomNav.tsx)
+ *    · the metadata rail folds into one ruled disclosure and its outbound
+ *      links become full-width buttons (app/projects/[slug]/page.tsx)
+ *    · the figure browser becomes a pile of cards you flick instead of a
+ *      track you drag (components/FigureStack.tsx)
+ *    · hover, which a finger does not have, is replaced by press
+ *
+ *  Rules of engagement when extending this: reach for `md:` to describe
+ *  the desk and `md:hidden`/`hidden md:block` to swap compositions. Only
+ *  touch the base classes where an `sm:`/`md:` override already exists,
+ *  so a mobile tweak can never leak upward. Never re-introduce blur,
+ *  radius or soft shadow on the phone — the material does not change.
  * ————————————————————————————————————————————————————————————————
  */
 :root {
@@ -20,6 +39,17 @@
   --line-strong: color-mix(in srgb, var(--ink) 32%, transparent);
   --accent: #ff4d00;
   --accent-wash: color-mix(in srgb, var(--accent) 6%, transparent);
+  /*
+   * Modal scrim. Deliberately NOT theme-mapped: a screenshot should always sit
+   * on the same surface, and the mono chrome around it stays legible in both
+   * themes. (Mapping these to --ink inverted in dark mode, which put light
+   * labels on a light backdrop.) These values are theme-independent, so they
+   * are declared once here and intentionally not repeated in the dark blocks.
+   */
+  --scrim: #14130f;
+  --scrim-ink: #ece9e0;
+  --scrim-ink-soft: #a39e90;
+  --scrim-line: color-mix(in srgb, #ece9e0 22%, transparent);
   color-scheme: light;
 }
 
@@ -74,6 +104,10 @@
   --color-line-strong: var(--line-strong);
   --color-accent: var(--accent);
   --color-accent-wash: var(--accent-wash);
+  --color-scrim: var(--scrim);
+  --color-scrim-ink: var(--scrim-ink);
+  --color-scrim-ink-soft: var(--scrim-ink-soft);
+  --color-scrim-line: var(--scrim-line);
   --font-display: var(--font-bricolage), sans-serif;
   --font-sans: var(--font-plex-sans), sans-serif;
   --font-mono: var(--font-plex-mono), monospace;
@@ -260,8 +294,179 @@ a:hover .rule-draw,
   margin: 1.75rem 0 0.75rem;
 }
 
-
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
+}
+
+/* ————————————————————————————————————————————————————————————————
+ *  TOUCH SHELL
+ *
+ *  Everything in this section is either (a) a rule that only fires below
+ *  the md breakpoint, or (b) input-modality handling that is inert for a
+ *  mouse. The desktop composition is not described here and is not altered
+ *  by it — the layout still switches at the same md boundary it always did.
+ * ———————————————————————————————————————————————————————————————— */
+
+html {
+  /* iOS inflates text in landscape without this. */
+  -webkit-text-size-adjust: 100%;
+}
+
+/*
+ * Tap targets: kill the grey flash and the 300ms double-tap-zoom delay.
+ * `touch-action` is intersected with every ancestor, so the figure deck's
+ * `pan-y` still wins for gestures that start on a card inside it.
+ */
+a,
+button,
+[role="button"],
+summary {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/*
+ * Press grammar for touch. Hover is not available on a phone, so anything
+ * that lifts on hover depresses on press instead — the same physical idea,
+ * expressed in the only channel a finger has.
+ */
+.press {
+  transition: transform 0.14s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+.press:active {
+  transform: scale(0.972);
+}
+
+/* <summary> chrome is drawn by the site, not the platform. */
+summary {
+  list-style: none;
+  cursor: pointer;
+}
+summary::-webkit-details-marker {
+  display: none;
+}
+
+/* The disclosure's "+" closes into an "×" when the sheet is open. */
+.spec-plus {
+  transition: transform 0.2s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+details[open] > summary .spec-plus {
+  transform: rotate(45deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spec-plus {
+    transition: none;
+  }
+}
+
+/* ————— Mobile shell geometry ————— */
+
+@media (max-width: 767px) {
+  /*
+   * Reserve the tab bar's height at the end of the document so the colophon
+   * is never trapped under it. `env()` keeps the same promise on devices
+   * with a home indicator.
+   */
+  body {
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Headline rags: on a narrow column an unbalanced last line is very
+     visible. Scoped here so the desktop measure is untouched. */
+  .balance-sm {
+    text-wrap: balance;
+  }
+}
+
+.tabbar-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* The tab bar steps aside for the full-screen screenshot viewer. */
+.lightbox-open .tabbar {
+  display: none;
+}
+
+/* ————— Figure deck (mobile screenshot stack) ————— */
+
+/*
+ * The deck is a pile of index cards. One gesture, one outcome: a horizontal
+ * drag flicks the top card away and the pile steps up; a vertical drag is
+ * never claimed, it belongs to the page.
+ */
+.deck {
+  touch-action: pan-y;
+}
+
+.deck-card {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 0%;
+  backface-visibility: hidden;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .deck-card {
+    transition:
+      transform 0.44s cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 0.3s ease-out;
+  }
+  /* A card under a finger tracks it exactly — no easing, no lag. */
+  .deck-card[data-live="true"] {
+    transition: none;
+  }
+}
+
+/* ————— Bottom tab bar ————— */
+
+/*
+ * The active-tab indicator reuses the site's one accent device: a rule that
+ * draws itself. Same gesture as `.rule-draw`, different axis.
+ */
+@keyframes tab-rule {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes tab-pop {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.16);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tab-rule {
+    transform-origin: left center;
+    animation: tab-rule 0.38s cubic-bezier(0.65, 0, 0.35, 1) both;
+  }
+  .tab-pop {
+    animation: tab-pop 0.36s cubic-bezier(0.2, 0.9, 0.3, 1);
+  }
+}
+
+/* ————— Reading progress ————— */
+
+.progress-fill {
+  transform-origin: left center;
+  will-change: transform;
+}
+
+/* ————— Full-screen screenshot viewer (touch) ————— */
+
+.lightbox-stage {
+  /* All gestures in here are ours: swipe, pinch, drag-to-dismiss. */
+  touch-action: none;
+  overscroll-behavior: contain;
 }

@@ -52,7 +52,15 @@ function setTheme(next: Theme) {
 
 function SunIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" className={className} aria-hidden="true">
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.25"
+      strokeLinecap="round"
+      className={className}
+      aria-hidden="true"
+    >
       <circle cx="8" cy="8" r="3" />
       <path d="M8 1v1.8M8 13.2V15M15 8h-1.8M2.8 8H1M13.06 2.94l-1.27 1.27M4.21 11.79l-1.27 1.27M13.06 13.06l-1.27-1.27M4.21 4.21L2.94 2.94" />
     </svg>
@@ -61,7 +69,15 @@ function SunIcon({ className }: { className?: string }) {
 
 function MoonIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinejoin="round" className={className} aria-hidden="true">
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.25"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
       <path d="M13.2 9.6a5.6 5.6 0 1 1-6.8-6.8 5.6 5.6 0 0 0 6.8 6.8Z" />
     </svg>
   );
@@ -74,6 +90,11 @@ export default function ThemeToggle() {
   const dark = theme === "dark";
 
   return (
+    /*
+     * The button carries a 44px touch target; the pill inside it is unchanged.
+     * The negative margin cancels the padding's layout footprint, so the
+     * header's rhythm is exactly what it was while a thumb gets a real target.
+     */
     <button
       type="button"
       role="switch"
@@ -81,36 +102,38 @@ export default function ThemeToggle() {
       aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
       title={dark ? "Switch to light mode" : "Switch to dark mode"}
       onClick={() => setTheme(dark ? "light" : "dark")}
-      className="group relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border border-line bg-paper-raised px-0.5 transition-colors duration-200 hover:border-line-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:h-8 sm:w-[4.5rem] sm:px-1"
+      className="group -my-2 inline-flex shrink-0 items-center justify-center py-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:my-0 sm:py-0"
     >
-      {/* track glyphs — the destination of the knob is always the visible one */}
-      <span
-        aria-hidden="true"
-        className={`pointer-events-none absolute left-3 hidden transition-colors duration-200 sm:block ${
-          dark ? "text-ink-soft" : "text-paper-raised"
-        }`}
-        suppressHydrationWarning
-      >
-        <SunIcon className={GLYPH} />
-      </span>
-      <span
-        aria-hidden="true"
-        className={`pointer-events-none absolute right-3 hidden transition-colors duration-200 sm:block ${
-          dark ? "text-paper-raised" : "text-ink-soft"
-        }`}
-        suppressHydrationWarning
-      >
-        <MoonIcon className={GLYPH} />
-      </span>
-      {/* knob */}
-      <span
-        aria-hidden="true"
-        className={`relative inline-flex h-5 w-5 items-center justify-center rounded-full bg-ink text-paper transition-transform duration-300 ease-[cubic-bezier(0.2,0.9,0.3,1)] group-active:scale-95 sm:h-6 sm:w-6 ${
-          dark ? "translate-x-5 sm:translate-x-[1.75rem]" : "translate-x-0"
-        }`}
-        suppressHydrationWarning
-      >
-        {dark ? <MoonIcon className={GLYPH} /> : <SunIcon className={GLYPH} />}
+      <span className="relative inline-flex h-7 w-12 items-center rounded-full border border-line bg-paper-raised px-0.5 transition-colors duration-200 group-hover:border-line-strong sm:h-8 sm:w-[4.5rem] sm:px-1">
+        {/* track glyphs — the destination of the knob is always the visible one */}
+        <span
+          aria-hidden="true"
+          className={`pointer-events-none absolute left-3 hidden transition-colors duration-200 sm:block ${
+            dark ? "text-ink-soft" : "text-paper-raised"
+          }`}
+          suppressHydrationWarning
+        >
+          <SunIcon className={GLYPH} />
+        </span>
+        <span
+          aria-hidden="true"
+          className={`pointer-events-none absolute right-3 hidden transition-colors duration-200 sm:block ${
+            dark ? "text-paper-raised" : "text-ink-soft"
+          }`}
+          suppressHydrationWarning
+        >
+          <MoonIcon className={GLYPH} />
+        </span>
+        {/* knob */}
+        <span
+          aria-hidden="true"
+          className={`relative inline-flex h-5 w-5 items-center justify-center rounded-full bg-ink text-paper transition-transform duration-300 ease-[cubic-bezier(0.2,0.9,0.3,1)] group-active:scale-95 sm:h-6 sm:w-6 ${
+            dark ? "translate-x-5 sm:translate-x-[1.75rem]" : "translate-x-0"
+          }`}
+          suppressHydrationWarning
+        >
+          {dark ? <MoonIcon className={GLYPH} /> : <SunIcon className={GLYPH} />}
+        </span>
       </span>
     </button>
   );
