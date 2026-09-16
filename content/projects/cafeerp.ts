@@ -54,7 +54,7 @@ I'd add payments and proper reporting earlier — the README is honest that this
     "Flyway-versioned schema with Hibernate validation — deployed to production on Render",
   ],
   links: {
-    liveDemo: "https://cafeerp.onrender.com",
+    liveDemo: "https://cafeerp-demo.onrender.com",
     repo: "https://github.com/amani-b/CafeERP",
   },
   images: ["/images/projects/cafeerp-1.png", "/images/projects/cafeerp-2.png",
