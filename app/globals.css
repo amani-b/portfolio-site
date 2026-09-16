@@ -155,6 +155,25 @@ a:hover .rule-draw,
   background-size: 100% 0.09em;
 }
 
+/*
+ * The copy button's success tick draws itself in the accent — the same idea
+ * as a rule drawing, one short pen stroke, then it holds. Reduced-motion
+ * users get the finished tick immediately, never a blank icon.
+ */
+@keyframes tick-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tick-draw path {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: tick-draw 0.35s cubic-bezier(0.65, 0, 0.35, 1) 0.05s forwards;
+  }
+}
+
 ::selection {
   background: var(--accent);
   color: #fffdf8;

@@ -1,3 +1,4 @@
+import CopyEmailButton from "@/components/CopyEmailButton";
 import TransitionLink from "@/components/TransitionLink";
 
 export const metadata = {
@@ -83,13 +84,14 @@ export default function AboutPage() {
               internships, junior roles, or anything I&rsquo;ve built.
             </p>
             <ul className="mt-6 space-y-3 text-lg font-medium">
-              <li>
+              <li className="flex flex-wrap items-center gap-x-4 gap-y-2">
                 <a
                   href="mailto:amanuelberhanu.2052@gmail.com"
                   className="press -my-2 inline-block py-2 text-ink"
                 >
                   <span className="rule-draw">amanuelberhanu.2052@gmail.com</span>
                 </a>
+                <CopyEmailButton email="amanuelberhanu.2052@gmail.com" />
               </li>
               <li>
                 <a
