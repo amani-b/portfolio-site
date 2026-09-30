@@ -1,33 +1,35 @@
 {
-  "name": "portfolio-site",
-  "version": "0.1.0",
+  "name": "portfolio-architect",
   "private": true,
-  "author": "Amanuel Berhanu",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Portfolio of Amanuel Berhanu — a single-page React app built with Vite.",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint",
-    "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "dev": "vite --port 3000",
+    "dev:host": "vite --port 3000 --host",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --port 3000",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "audit": "node scripts/audit.cjs"
   },
   "dependencies": {
-    "marked": "^18.0.11",
-    "next": "16.3.4",
-    "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.546.0",
+    "react": "^19.0.1",
+    "react-dom": "^19.0.1"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.3.4",
-    "prettier": "3.9.6",
-    "prettier-plugin-tailwindcss": "0.8.1",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^22.14.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "oxlint": "^1.86.0",
     "puppeteer-core": "^25.10.0",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0"
   }
 }

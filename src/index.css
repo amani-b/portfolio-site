@@ -1,0 +1,214 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #0a0a0a;
+  --color-foreground: #ededed;
+
+  --color-muted: #262626;
+  --color-muted-foreground: #a3a3a3;
+  /*
+   * Secondary / inactive-interactive text. Replaces the old `text-white/40`
+   * (3.8:1 on --color-background — below WCAG AA for small text) and the
+   * `opacity-50` footer text (2.4:1). This measures 6.1:1.
+   */
+  --color-foreground-dim: #8f8f8f;
+
+  /*
+   * The one raised surface on the page: the floating bottom-nav pill. It is
+   * deliberately lighter than --color-background, because it sits *over*
+   * content and has to read as a separate plane. Was a raw `bg-[#121212]` in
+   * the component — a hex outside the token set, which is how a palette drifts.
+   */
+  --color-surface: #121212;
+
+  --color-accent: #3b82f6;
+  --color-accent-foreground: #ffffff;
+
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /*
+   * Anchors must land below the fixed desktop nav. Scoped to `md` on purpose:
+   * below that breakpoint there is no top nav, so an offset would only push
+   * every section 72px further down than the reader asked for.
+   */
+  @media (min-width: 768px) {
+    html {
+      scroll-padding-top: 4.5rem;
+    }
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: var(--font-sans);
+  }
+
+  /*
+   * Tailwind v4 stopped setting `cursor: pointer` on buttons — it defers to the
+   * browser default, which is `default`. Every control that does not opt in
+   * with an explicit cursor utility was therefore left without the one cue that
+   * says "this is clickable": the case-study disclosure and the three viewer
+   * buttons all measured `cursor: default`. `:disabled` deliberately keeps the
+   * default cursor, which is the correct signal for a control that does nothing.
+   * Utility classes (`cursor-zoom-in` on the plates, `cursor-pointer` on the
+   * copy pill) live in a later layer and still win.
+   */
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+
+  /*
+   * Every focusable thing gets a visible ring. The accent token was previously
+   * declared but never used anywhere, so keyboard users got whatever the
+   * browser defaults to on a near-black page.
+   */
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  /* Custom Scrollbar */
+  @media (min-width: 768px) {
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #262626;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #404040;
+    }
+  }
+}
+
+@layer components {
+  /*
+   * The bottom nav floats above the home indicator on iOS. `bottom-6` alone
+   * puts it under the gesture bar on notched devices.
+   */
+  .bottom-nav-offset {
+    bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* The scroll container reserves the same footprint so the colophon can never
+     be trapped behind the floating nav. */
+  .bottom-nav-clearance {
+    padding-bottom: calc(9rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  @media (min-width: 768px) {
+    .bottom-nav-clearance {
+      padding-bottom: 0;
+    }
+  }
+}
+
+/* ————————————————————————————————————————————————————————————————
+ *  MOTION
+ *
+ *  All four animations on this site are CSS: a fade-up on arrival, a fade-up on
+ *  scroll, a grid-track expand for the case-study disclosure, and a transform
+ *  slide for the bottom-nav indicator. An animation library was measured at
+ *  41 kB gzip — 32% of this app's JavaScript — to express exactly these, so it
+ *  is not shipped.
+ *
+ *  Every one of them is gated on `prefers-reduced-motion: no-preference`, so a
+ *  reduced-motion visitor gets the finished state immediately rather than a
+ *  blank one. Nothing here hides content that a reduced-motion user then has to
+ *  wait for.
+ * ———————————————————————————————————————————————————————————————— */
+
+/* Arrival: the hero rises and settles once. */
+@keyframes rise {
+  from {
+    opacity: 0;
+    translate: 0 18px;
+  }
+}
+
+/* Scroll entrance: the hidden start state only exists when motion is welcome. */
+@media (prefers-reduced-motion: no-preference) {
+  .rise {
+    animation: rise 0.6s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+  }
+
+  .reveal {
+    opacity: 0;
+    translate: 0 16px;
+    transition:
+      opacity 0.5s ease-out,
+      translate 0.5s cubic-bezier(0.2, 0.9, 0.3, 1);
+    transition-delay: var(--reveal-delay, 0ms);
+  }
+
+  .reveal.is-visible {
+    opacity: 1;
+    translate: 0 0;
+  }
+
+  .disclosure {
+    transition: grid-template-rows 0.35s cubic-bezier(0.2, 0.9, 0.3, 1);
+  }
+
+  .nav-indicator {
+    transition:
+      transform 0.45s cubic-bezier(0.2, 0.9, 0.3, 1),
+      width 0.45s cubic-bezier(0.2, 0.9, 0.3, 1);
+  }
+}
+
+/*
+ * The case-study disclosure. Animating `grid-template-rows` 0fr → 1fr expands
+ * to the content's natural height without measuring it in JavaScript.
+ */
+.disclosure {
+  display: grid;
+  grid-template-rows: 0fr;
+}
+
+.disclosure[data-open='true'] {
+  grid-template-rows: 1fr;
+}
+
+.disclosure > * {
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* The plus closes into a cross when the sheet is open. */
+.disclosure-icon {
+  transition: transform 0.2s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+[aria-expanded='true'] .disclosure-icon {
+  transform: rotate(45deg);
+}
+
+/* The nav indicator's slide is a motion effect; without motion it just jumps. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .disclosure,
+  .disclosure-icon,
+  .nav-indicator {
+    transition: none;
+  }
+}

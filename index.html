@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- `viewport-fit=cover` is what makes env(safe-area-inset-*) resolve on iOS,
+         which the floating bottom nav depends on. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <title>Amanuel Berhanu — Portfolio</title>
+    <meta
+      name="description"
+      content="Portfolio of Amanuel Berhanu, a 3rd-year computer science student who builds software products end to end."
+    />
+    <meta name="author" content="Amanuel Berhanu" />
+    <meta name="robots" content="index, follow" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0a0a0a" />
+
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+
+    <!-- The type stack declared in index.css ("Inter" + "JetBrains Mono") is now
+         actually fetched; previously it silently fell back to system fonts.
+         Weights are the ones the CSS actually uses: Inter 300 (font-light),
+         400 and 500 (font-medium); JetBrains Mono 400 and 500. Requesting 600
+         would ship a font file nothing renders. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap"
+    />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Amanuel Berhanu — Portfolio" />
+    <meta property="og:title" content="Amanuel Berhanu — Portfolio" />
+    <meta
+      property="og:description"
+      content="I build software-related products, from data models to interfaces. Case studies with honest write-ups of decisions and trade-offs."
+    />
+    <!-- `summary`, not `summary_large_image`: there is no 1200x630 card asset. -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Amanuel Berhanu — Portfolio" />
+    <meta
+      name="twitter:description"
+      content="I build software-related products, from data models to interfaces."
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <!--
+      This is a client-rendered single-page app: with JavaScript off, `#root`
+      stays empty and the page would be blank with no explanation. The styles
+      are inlined here rather than classed because the built stylesheet is
+      injected by the bundle, which by definition has not run.
+    -->
+    <noscript>
+      <p
+        style="
+          margin: 0;
+          padding: 2.5rem 1.5rem;
+          background: #0a0a0a;
+          color: #ededed;
+          font-family: system-ui, -apple-system, sans-serif;
+          line-height: 1.6;
+        "
+      >
+        This page is rendered in the browser and needs JavaScript enabled. The
+        work it describes is also on
+        <a href="https://github.com/amani-b" style="color: #3b82f6">github.com/amani-b</a>.
+      </p>
+    </noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

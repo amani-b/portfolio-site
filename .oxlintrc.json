@@ -1,0 +1,58 @@
+{
+  // Oxlint, not ESLint. `typescript-eslint` (and therefore ESLint's TypeScript
+  // support) declares `typescript >=4.8.4 <6.1.0`; this project is on
+  // TypeScript 7, so ESLint cannot parse the source without forcing a peer
+  // conflict. Oxlint parses TS itself and brings the react, jsx-a11y and import
+  // rule sets with it.
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc", "react", "jsx-a11y", "import"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "perf": "warn"
+  },
+  "env": {
+    "browser": true,
+    "es2024": true
+  },
+  "settings": {
+    "react": {
+      // Required for the automatic JSX runtime: `jsx: "react-jsx"` in
+      // tsconfig means `React` is never in scope and never needs to be.
+      "version": "19.0.1"
+    }
+  },
+  "ignorePatterns": ["dist", "node_modules", "screenshots", "public"],
+  "overrides": [
+    {
+      "files": ["scripts/**/*.cjs", "vite.config.ts"],
+      "env": { "node": true },
+      "rules": {
+        // Functions inside `collect` are passed to `page.evaluate`, which
+        // serialises the function source and re-evaluates it in the browser.
+        // Hoisting these helpers out of their parent would leave them
+        // undefined in the page. The rule's advice breaks the script.
+        "unicorn/consistent-function-scoping": "off",
+        // A Puppeteer driver is sequential by nature: one browser, one page at
+        // a time, each step depending on the last. `Promise.all` would have
+        // several viewports fighting over the same page object.
+        "no-await-in-loop": "off"
+      }
+    }
+  ],
+  "rules": {
+    // The automatic JSX runtime makes this a false positive; oxlint does not
+    // read `jsx` from tsconfig to turn it off on its own.
+    "react/react-in-jsx-scope": "off",
+    // Index keys are correct for the five call sites here: they render content
+    // parsed out of a string (RichText) or a literal array in the data file
+    // (Projects). Those lists are never reordered or filtered, so there is no
+    // stable identity to key on and no reconciliation hazard.
+    "react/no-array-index-key": "off",
+    // `import './index.css'` is how a Vite app pulls in its stylesheet.
+    "import/no-unassigned-import": ["warn", { "allow": ["**/*.css"] }],
+    // `role="status"` on a live region inside the viewer dialog is the intended
+    // idiom; <output> is for form results, not for announcing a carousel.
+    "jsx-a11y/prefer-tag-over-role": "off"
+  }
+}
