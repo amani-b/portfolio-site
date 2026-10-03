@@ -31,9 +31,14 @@ export default function Hero({ id }: { id: string }) {
           {hasRule ? (
             <>
               {parts[0]}
-              <span className="underline decoration-accent decoration-2 underline-offset-[6px]">
-                {profile.headlineRule}
-              </span>
+              {/*
+                `underline-drawn` holds the rule at full width for anyone who
+                never gets the animation (reduced motion, or a browser that
+                drops the keyframe), and `underline-sweep` draws it once on
+                arrival. The two are separate classes on purpose: the drawn
+                state is the truth, the sweep is the flourish.
+              */}
+              <span className="underline-drawn underline-sweep">{profile.headlineRule}</span>
               {parts[1]}
             </>
           ) : (
@@ -47,8 +52,8 @@ export default function Hero({ id }: { id: string }) {
 
         <div className="flex flex-wrap items-center gap-x-6 gap-y-4 font-mono text-sm">
           <a
-            href="#projects"
-            className="group flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-5 py-3 transition-all hover:bg-white/10"
+            href="#work"
+            className="group flex items-center gap-2 rounded-full border border-line-strong bg-wash px-5 py-3 transition-colors hover:bg-wash-strong"
           >
             <span>View Work</span>
             <ArrowRight

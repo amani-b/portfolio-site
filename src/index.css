@@ -1,29 +1,158 @@
 @import "tailwindcss";
 
+/* ————————————————————————————————————————————————————————————————
+ *  THEME MODEL
+ *
+ *  Two themes, one token set. Every colour on the site is declared once in
+ *  `:root` (light), overridden in `:root.dark`, and exposed to Tailwind through
+ *  `@theme inline` — so `bg-background`, `text-foreground-dim`, `border-line`
+ *  and the rest resolve to whatever theme is currently on <html>.
+ *
+ *  The theme is carried as a `light`/`dark` class on <html>, applied *before
+ *  first paint* by the inline script in index.html (stored preference, else the
+ *  system preference). The `prefers-color-scheme` block below is the no-JS
+ *  fallback, so a system-dark visitor without JavaScript still gets the dark
+ *  theme. Both class variants and the media variant hold the same values — keep
+ *  them in sync; they are duplicated only because a media query cannot be
+ *  expressed as a class.
+ *
+ *  There is deliberately no `border-white/10`-style class anywhere in the
+ *  source. Hairlines and washes are derived from `--foreground` with
+ *  `color-mix`, which means they invert with the theme for free instead of
+ *  being re-specified per theme — and a half-finished light mode (dark text on
+ *  a light page, but white-10% borders that vanish) is not expressible.
+ * ———————————————————————————————————————————————————————————————— */
+:root {
+  color-scheme: light;
+
+  --background: #fafafa;
+  --foreground: #0a0a0a;
+
+  /*
+   * The one raised surface: the floating bottom-nav pill, and the theme
+   * switch's track. It has to read as a separate plane from the page, so it is
+   * lighter than the background in both themes — the direction of "raised" is
+   * the same, only the value changes.
+   */
+  --surface: #ffffff;
+
+  /* Used behind screenshots while they load, and in the viewer's stage. */
+  --muted: #e7e7e7;
+
+  /*
+   * Text hierarchy. Two secondary steps, in the same order in both themes:
+   * `--muted-foreground` is body-copy secondary (7.5:1 here) and
+   * `--foreground-dim` is the quieter one for inactive interactive text and
+   * mono metadata (5.1:1 here). Both clear WCAG AA for small text, which is the
+   * bar the dark theme was already held to — a light theme that quietly drops
+   * to 3:1 grey would be a regression dressed up as a feature.
+   */
+  --muted-foreground: #525252;
+  --foreground-dim: #6b6b6b;
+
+  --line: color-mix(in srgb, var(--foreground) 12%, transparent);
+  --line-strong: color-mix(in srgb, var(--foreground) 26%, transparent);
+  --wash: color-mix(in srgb, var(--foreground) 5%, transparent);
+  --wash-strong: color-mix(in srgb, var(--foreground) 10%, transparent);
+
+  /*
+   * The accent is the same hue in both themes but not the same value: #3b82f6
+   * measures 5.4:1 on the dark background and only 3.5:1 on this one, which
+   * fails AA the moment it is used for text rather than a focus ring. The light
+   * theme therefore steps down to #2563eb (4.95:1) — same blue, legible weight.
+   */
+  --accent: #2563eb;
+  --accent-foreground: #ffffff;
+
+  /*
+   * Modal scrim for the screenshot viewer. Deliberately NOT theme-mapped: a
+   * screenshot should always sit on the same surface, and the mono chrome
+   * around it stays legible either way. Mapping these to the foreground tokens
+   * inverted them in light mode and put light labels on a light backdrop, so
+   * they are declared once, here, and intentionally not repeated in `:root.dark`.
+   */
+  --scrim: #0a0a0a;
+  --scrim-ink: #ededed;
+  --scrim-ink-soft: #a3a3a3;
+  --scrim-line: color-mix(in srgb, #ededed 14%, transparent);
+}
+
+:root.dark {
+  color-scheme: dark;
+
+  --background: #0a0a0a;
+  --foreground: #ededed;
+
+  --surface: #121212;
+  --muted: #262626;
+
+  --muted-foreground: #a3a3a3;
+  --foreground-dim: #8f8f8f;
+
+  --line: color-mix(in srgb, var(--foreground) 10%, transparent);
+  --line-strong: color-mix(in srgb, var(--foreground) 22%, transparent);
+  --wash: color-mix(in srgb, var(--foreground) 5%, transparent);
+  --wash-strong: color-mix(in srgb, var(--foreground) 10%, transparent);
+
+  --accent: #3b82f6;
+  --accent-foreground: #ffffff;
+}
+
+/* No-JS fallback: no class has been applied, so follow the system. */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light):not(.dark) {
+    color-scheme: dark;
+
+    --background: #0a0a0a;
+    --foreground: #ededed;
+
+    --surface: #121212;
+    --muted: #262626;
+
+    --muted-foreground: #a3a3a3;
+    --foreground-dim: #8f8f8f;
+
+    --line: color-mix(in srgb, var(--foreground) 10%, transparent);
+    --line-strong: color-mix(in srgb, var(--foreground) 22%, transparent);
+    --wash: color-mix(in srgb, var(--foreground) 5%, transparent);
+    --wash-strong: color-mix(in srgb, var(--foreground) 10%, transparent);
+
+    --accent: #3b82f6;
+    --accent-foreground: #ffffff;
+  }
+}
+
+/*
+ * `inline` is what makes the theme switchable at runtime: the utilities compile
+ * to `var(--background)` rather than to a baked-in `#fafafa`, so flipping the
+ * class on <html> re-paints everything without a re-render.
+ */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-surface: var(--surface);
+  --color-muted: var(--muted);
+
+  --color-muted-foreground: var(--muted-foreground);
+  --color-foreground-dim: var(--foreground-dim);
+
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-wash: var(--wash);
+  --color-wash-strong: var(--wash-strong);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-scrim: var(--scrim);
+  --color-scrim-ink: var(--scrim-ink);
+  --color-scrim-ink-soft: var(--scrim-ink-soft);
+  --color-scrim-line: var(--scrim-line);
+}
+
+/* Static tokens — not theme-dependent, so a plain `@theme` is right. */
 @theme {
-  --color-background: #0a0a0a;
-  --color-foreground: #ededed;
-
-  --color-muted: #262626;
-  --color-muted-foreground: #a3a3a3;
-  /*
-   * Secondary / inactive-interactive text. Replaces the old `text-white/40`
-   * (3.8:1 on --color-background — below WCAG AA for small text) and the
-   * `opacity-50` footer text (2.4:1). This measures 6.1:1.
-   */
-  --color-foreground-dim: #8f8f8f;
-
-  /*
-   * The one raised surface on the page: the floating bottom-nav pill. It is
-   * deliberately lighter than --color-background, because it sits *over*
-   * content and has to read as a separate plane. Was a raw `bg-[#121212]` in
-   * the component — a hex outside the token set, which is how a palette drifts.
-   */
-  --color-surface: #121212;
-
-  --color-accent: #3b82f6;
-  --color-accent-foreground: #ffffff;
-
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
@@ -55,6 +184,20 @@
   }
 
   /*
+   * The theme flip is a paint, not a re-layout. Cross-fading the two surfaces
+   * over a quarter second stops the whole page snapping from black to white,
+   * which reads as a rendering fault. Gated on motion, because a reduced-motion
+   * visitor is not asking for a fade either.
+   */
+  @media (prefers-reduced-motion: no-preference) {
+    body {
+      transition:
+        background-color 0.25s ease,
+        color 0.25s ease;
+    }
+  }
+
+  /*
    * Tailwind v4 stopped setting `cursor: pointer` on buttons — it defers to the
    * browser default, which is `default`. Every control that does not opt in
    * with an explicit cursor utility was therefore left without the one cue that
@@ -79,6 +222,10 @@
     border-radius: 2px;
   }
 
+  ::selection {
+    background: color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+
   /* Custom Scrollbar */
   @media (min-width: 768px) {
     ::-webkit-scrollbar {
@@ -88,11 +235,11 @@
       background: transparent;
     }
     ::-webkit-scrollbar-thumb {
-      background: #262626;
+      background: var(--line-strong);
       border-radius: 4px;
     }
     ::-webkit-scrollbar-thumb:hover {
-      background: #404040;
+      background: color-mix(in srgb, var(--foreground) 40%, transparent);
     }
   }
 }
@@ -120,13 +267,71 @@
 }
 
 /* ————————————————————————————————————————————————————————————————
+ *  THE ACCENT UNDERLINE
+ *
+ *  The site's one accent device, and the same idea the previous site used: a
+ *  rule that draws itself under the text it belongs to. It is a background
+ *  gradient whose box grows from 0 to full width — not `text-decoration`,
+ *  because text-decoration cannot be animated in any browser that matters, and
+ *  not a pseudo-element, because a background survives the text wrapping onto
+ *  several lines whereas a pseudo-element underlines only the last line box.
+ *
+ *  Three variants, one family:
+ *
+ *    .link-underline   draws on hover / keyboard focus of the link
+ *    .underline-drawn  already drawn, for headline emphasis at rest
+ *    .underline-sweep  .underline-drawn, but sweeps in once on arrival
+ *
+ *  The draw is 1.5px and sits on the text's own box; the headline variant is
+ *  2px so it reads as a mark rather than a border.
+ * ———————————————————————————————————————————————————————————————— */
+.link-underline {
+  background-image: linear-gradient(var(--accent), var(--accent));
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0% 1.5px;
+  transition: background-size 0.35s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* Driven from the link, not the span, so hovering anywhere in the anchor draws
+   the rule — and so keyboard focus draws it too, which hover alone never did. */
+a:hover .link-underline,
+a:focus-visible .link-underline,
+.group:hover .link-underline,
+.group:focus-visible .link-underline {
+  background-size: 100% 1.5px;
+}
+
+.underline-drawn {
+  background-image: linear-gradient(var(--accent), var(--accent));
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 100% 2px;
+}
+
+@keyframes underline-sweep {
+  from {
+    background-size: 0% 2px;
+  }
+  to {
+    background-size: 100% 2px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .underline-sweep {
+    animation: underline-sweep 0.7s cubic-bezier(0.65, 0, 0.35, 1) 0.55s both;
+  }
+}
+
+/* ————————————————————————————————————————————————————————————————
  *  MOTION
  *
- *  All four animations on this site are CSS: a fade-up on arrival, a fade-up on
- *  scroll, a grid-track expand for the case-study disclosure, and a transform
- *  slide for the bottom-nav indicator. An animation library was measured at
- *  41 kB gzip — 32% of this app's JavaScript — to express exactly these, so it
- *  is not shipped.
+ *  Every animation on this site is CSS: a fade-up on arrival, a fade-up on
+ *  scroll, a grid-track expand for the case-study disclosure, a transform slide
+ *  for the bottom-nav indicator, the underline draw above, and a horizontal
+ *  scroll for the projects rail. An animation library was measured at 41 kB gzip
+ *  — 32% of this app's JavaScript — to express these, so it is not shipped.
  *
  *  Every one of them is gated on `prefers-reduced-motion: no-preference`, so a
  *  reduced-motion visitor gets the finished state immediately rather than a
@@ -200,15 +405,55 @@
   transform: rotate(45deg);
 }
 
+/* ————————————————————————————————————————————————————————————————
+ *  SELECTED-PROJECTS RAIL
+ *
+ *  A horizontal track on a page that is otherwise a single vertical column. The
+ *  snap is `mandatory` so a card can never come to rest half-visible — a rail
+ *  that stops between two cards makes the reader scroll again to find out what
+ *  they were looking at. The scrollbar is hidden because the rail advertises
+ *  itself with its own mono counter and arrow controls, which are reachable by
+ *  keyboard; a 6px platform scrollbar inside a hairline-ruled page is the one
+ *  element that would look borrowed from somewhere else.
+ * ———————————————————————————————————————————————————————————————— */
+.rail {
+  display: flex;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.rail::-webkit-scrollbar {
+  display: none;
+}
+
+.rail > * {
+  scroll-snap-align: start;
+  flex: 0 0 auto;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .rail {
+    scroll-behavior: smooth;
+  }
+}
+
 /* The nav indicator's slide is a motion effect; without motion it just jumps. */
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
   }
 
+  .rail {
+    scroll-behavior: auto;
+  }
+
   .disclosure,
   .disclosure-icon,
-  .nav-indicator {
+  .nav-indicator,
+  .link-underline {
     transition: none;
   }
 }

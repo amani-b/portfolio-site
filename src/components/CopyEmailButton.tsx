@@ -69,7 +69,7 @@ export default function CopyEmailButton({ email }: { email: string }) {
         className={`inline-flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-full border px-4 font-mono text-[11px] tracking-[0.18em] uppercase transition-colors ${
           copied
             ? "border-accent text-accent"
-            : "border-white/15 text-foreground-dim hover:border-white/30 hover:text-foreground"
+            : "border-line text-foreground-dim hover:border-line-strong hover:text-foreground"
         }`}
       >
         {copied ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}

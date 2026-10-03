@@ -13,10 +13,37 @@
     />
     <meta name="author" content="Amanuel Berhanu" />
     <meta name="robots" content="index, follow" />
-    <meta name="color-scheme" content="dark" />
-    <meta name="theme-color" content="#0a0a0a" />
+    <!-- Both schemes are real now, so the UA may style form controls and the
+         canvas for either. The two `theme-color` entries let the mobile browser
+         chrome follow the active theme instead of always painting near-black. -->
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fafafa" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a" />
 
     <link rel="icon" href="/favicon.ico" sizes="any" />
+
+    <!--
+      Applies the stored (or system) theme before the first paint. This is the
+      one piece of JavaScript that has to be inline and synchronous: a module
+      script is deferred, so the page would paint in the light default and then
+      snap to dark. It only sets a class — the palette itself is CSS.
+    -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem('theme');
+          var dark = stored
+            ? stored === 'dark'
+            : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var root = document.documentElement.classList;
+          root.add(dark ? 'dark' : 'light');
+          root.remove(dark ? 'light' : 'dark');
+        } catch (error) {
+          /* Storage or matchMedia unavailable — the CSS media-query fallback
+             in index.css still gives a system-dark visitor the dark theme. */
+        }
+      })();
+    </script>
 
     <!-- The type stack declared in index.css ("Inter" + "JetBrains Mono") is now
          actually fetched; previously it silently fell back to system fonts.
@@ -58,16 +85,39 @@
         style="
           margin: 0;
           padding: 2.5rem 1.5rem;
-          background: #0a0a0a;
-          color: #ededed;
+          background: #fafafa;
+          color: #0a0a0a;
           font-family: system-ui, -apple-system, sans-serif;
           line-height: 1.6;
         "
       >
         This page is rendered in the browser and needs JavaScript enabled. The
         work it describes is also on
-        <a href="https://github.com/amani-b" style="color: #3b82f6">github.com/amani-b</a>.
+        <a href="https://github.com/amani-b" style="color: #2563eb">github.com/amani-b</a>.
       </p>
+    </noscript>
+    <noscript>
+      <!--
+        With no JavaScript there is no stored preference and no class on <html>,
+        so the palette follows the system — these values mirror the
+        `prefers-color-scheme` block in index.css. Inlined rather than classed
+        because the built stylesheet is injected by the bundle, which by
+        definition has not run.
+      -->
+      <style>
+        @media (prefers-color-scheme: dark) {
+          body {
+            background: #0a0a0a;
+          }
+          p {
+            background: #0a0a0a !important;
+            color: #ededed !important;
+          }
+          p a {
+            color: #3b82f6 !important;
+          }
+        }
+      </style>
     </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>

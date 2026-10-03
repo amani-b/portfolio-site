@@ -25,7 +25,7 @@ export default function RichText({ text }: { text: string }): ReactNode {
           return (
             <code
               key={index}
-              className="rounded bg-white/5 px-1 py-0.5 font-mono text-[0.85em] text-foreground"
+              className="rounded bg-wash px-1 py-0.5 font-mono text-[0.85em] text-foreground"
             >
               {part.slice(1, -1)}
             </code>

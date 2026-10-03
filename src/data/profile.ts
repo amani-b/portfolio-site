@@ -12,19 +12,41 @@
  *   · No résumé / CV. No such file was ever published, so no link is offered.
  */
 
-export type SectionId = "home" | "background" | "projects" | "about";
+export type SectionId = "home" | "background" | "work" | "about";
+
+/** The projects page is a route, not a section of the home page. */
+export type NavKey = SectionId | "index";
 
 export type NavItem = {
-  id: SectionId;
-  /** Shown in the desktop nav and under the bottom-nav icon. */
+  id: NavKey;
+  /** Shown in the desktop nav and read out as the bottom-nav link's name. */
   label: string;
+  /**
+   * Where the item actually goes. The home-page sections carry `/#id` so the
+   * same nav works from either route; the projects page carries its own path.
+   */
+  href: string;
+  /**
+   * The home-page section this item tracks while scrolling, or `null` when it
+   * is a separate page. The scroll spy only ever reports section ids, which is
+   * what keeps a page destination from being "active" while you are scrolling
+   * the home page past a section that happens to be called something similar.
+   */
+  section: SectionId | null;
 };
 
+/**
+ * Order matters: it is the reading order of the desktop nav, and the left-to-
+ * right order of the phone's bottom pill. `Work` and `Index` sit together
+ * because they are the two halves of the same thing — the home page's work
+ * showcase, and the full catalogue.
+ */
 export const nav: NavItem[] = [
-  { id: "home", label: "Home" },
-  { id: "background", label: "Background" },
-  { id: "projects", label: "Projects" },
-  { id: "about", label: "About" },
+  { id: "home", label: "Home", href: "/#home", section: "home" },
+  { id: "background", label: "Background", href: "/#background", section: "background" },
+  { id: "work", label: "Work", href: "/#work", section: "work" },
+  { id: "index", label: "Index", href: "/projects", section: null },
+  { id: "about", label: "About", href: "/#about", section: "about" },
 ];
 
 export const profile = {
@@ -42,7 +64,14 @@ export const profile = {
   /** The old site's home intro line, verbatim. */
   intro: "End-to-end: data models, pipelines, and the interfaces on top of them — with honest write-ups of the decisions and trade-offs.",
 
-  /** The old site's tagline for the project index. */
+  /**
+   * The projects page — the old site's `/projects` route, verbatim.
+   *
+   * `indexIntro` is also used on the home page's work section, which is where
+   * it was before this page existed; the old site used the same sentence for
+   * both, so it is one string, not two.
+   */
+  indexHeading: "Everything I’ve shipped, written down honestly.",
   indexIntro: "Each entry records what it does, what it cost, and what I’d do differently.",
 
   /*

@@ -135,7 +135,7 @@ export default function Screenshots({ project }: { project: Project }) {
 
   return (
     <div className="mt-10">
-      <div className="flex items-baseline justify-between gap-4 border-t border-white/10 pt-4">
+      <div className="flex items-baseline justify-between gap-4 border-t border-line pt-4">
         <h4 className="font-mono text-xs tracking-[0.18em] text-muted-foreground uppercase">
           Screenshots
         </h4>
@@ -160,7 +160,7 @@ export default function Screenshots({ project }: { project: Project }) {
                    it opens — the caption is otherwise only reachable once the
                    viewer is already open. */
                 aria-label={`View figure ${index + 1} of ${count} larger — ${caption}`}
-                className="group block w-full cursor-zoom-in border border-white/10 transition-colors hover:border-white/25"
+                className="group block w-full cursor-zoom-in border border-line transition-colors hover:border-line-strong"
               >
                 <img
                   src={src}
@@ -188,9 +188,16 @@ export default function Screenshots({ project }: { project: Project }) {
               aria-modal="true"
               aria-label={`${project.title} screenshot ${open + 1} of ${count}`}
               tabIndex={-1}
-              className="fixed inset-0 z-[60] flex flex-col bg-black/95 backdrop-blur-sm outline-none"
+              /*
+               * The viewer is painted on `--scrim`, not on the page palette.
+               * These tokens are deliberately theme-independent (see index.css):
+               * a screenshot should sit on the same surface in both themes, and
+               * mapping the chrome to `--foreground` inverted it in light mode,
+               * putting light labels on a light backdrop.
+               */
+              className="fixed inset-0 z-[60] flex flex-col bg-scrim/95 backdrop-blur-sm outline-none"
             >
-              <div className="flex items-center justify-between gap-4 border-b border-white/10 px-4 py-3 font-mono text-xs text-foreground-dim">
+              <div className="flex items-center justify-between gap-4 border-b border-scrim-line px-4 py-3 font-mono text-xs text-scrim-ink-soft">
                 <span className="min-w-0 truncate">
                   Fig. {String(open + 1).padStart(2, "0")} / {String(count).padStart(2, "0")} —{" "}
                   {project.title}
@@ -200,7 +207,7 @@ export default function Screenshots({ project }: { project: Project }) {
                     type="button"
                     onClick={() => step(-1)}
                     aria-label="Previous screenshot"
-                    className="flex h-11 w-11 items-center justify-center transition-colors hover:text-foreground"
+                    className="flex h-11 w-11 items-center justify-center transition-colors hover:text-scrim-ink"
                   >
                     <ChevronLeft size={18} aria-hidden="true" />
                   </button>
@@ -208,7 +215,7 @@ export default function Screenshots({ project }: { project: Project }) {
                     type="button"
                     onClick={() => step(1)}
                     aria-label="Next screenshot"
-                    className="flex h-11 w-11 items-center justify-center transition-colors hover:text-foreground"
+                    className="flex h-11 w-11 items-center justify-center transition-colors hover:text-scrim-ink"
                   >
                     <ChevronRight size={18} aria-hidden="true" />
                   </button>
@@ -216,7 +223,7 @@ export default function Screenshots({ project }: { project: Project }) {
                     type="button"
                     onClick={close}
                     aria-label="Close screenshot viewer"
-                    className="ml-1 flex h-11 w-11 items-center justify-center transition-colors hover:text-foreground"
+                    className="ml-1 flex h-11 w-11 items-center justify-center transition-colors hover:text-scrim-ink"
                   >
                     <X size={18} aria-hidden="true" />
                   </button>
@@ -240,11 +247,11 @@ export default function Screenshots({ project }: { project: Project }) {
                 <img
                   src={project.images[open]}
                   alt={captionFor(project.images[open], open)}
-                  className="max-h-full max-w-full border border-white/10 bg-muted"
+                  className="max-h-full max-w-full border border-scrim-line bg-scrim"
                 />
               </div>
 
-              <p className="border-t border-white/10 px-4 py-3 text-center font-mono text-[11px] text-foreground-dim">
+              <p className="border-t border-scrim-line px-4 py-3 text-center font-mono text-[11px] text-scrim-ink-soft">
                 {/* Keyboard hints only where there is a keyboard. The previous
                     copy told phone users to press Esc. */}
                 <span className="md:hidden">Swipe or use the arrows between figures</span>

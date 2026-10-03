@@ -22,7 +22,7 @@ export default function About({ id }: { id: string }) {
   const hasLink = lead.length === 2;
 
   return (
-    <section id={id} className="border-t border-white/10 py-24 md:py-32">
+    <section id={id} className="border-t border-line py-24 md:py-32">
       <div className="grid gap-12 md:grid-cols-[1fr_2fr] md:gap-24">
         <div>
           <h2 className="sticky top-32 font-mono text-sm tracking-widest text-muted-foreground uppercase">
@@ -42,10 +42,10 @@ export default function About({ id }: { id: string }) {
                   <>
                     {lead[0]}
                     <a
-                      href="#projects"
-                      className="font-medium text-foreground underline decoration-white/20 underline-offset-4 transition-colors hover:decoration-accent"
+                      href="#work"
+                      className="font-medium text-foreground"
                     >
-                      {about.projectLinkText}
+                      <span className="link-underline">{about.projectLinkText}</span>
                     </a>
                     {lead[1]}
                   </>
@@ -58,7 +58,7 @@ export default function About({ id }: { id: string }) {
             </div>
           </Reveal>
 
-          <Reveal delay={200} className="mt-16 border-t border-white/10 pt-8">
+          <Reveal delay={200} className="mt-16 border-t border-line pt-8">
             <h4 className="font-mono text-xs tracking-[0.18em] text-muted-foreground uppercase">
               Contact
             </h4>

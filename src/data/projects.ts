@@ -27,6 +27,7 @@ export type Project = {
   title: string;
   /** One sentence, plain language: what the project does. */
   tagline: string;
+  /** The year it was completed — `"2026"` or a range like `"2025–2026"`. */
   year: string;
   /** The author's role building it. */
   role: string;
@@ -39,6 +40,17 @@ export type Project = {
   links: { liveDemo: string; repo: string };
   /** Paths relative to /public. Exactly the four the old registry displayed. */
   images: string[];
+  /**
+   * Whether this project appears in the rail on the projects page. The field is
+   * carried over from the old registry, where it drove the home page's flagship
+   * panel; the rail is the same idea with room for more than one.
+   *
+   * Be honest about what it currently does: there is ONE project in this
+   * registry, so `getSelectedProjects()` returns that one project and the
+   * "selected" distinction cannot be observed. It is scaffolding, and it is
+   * labelled as such rather than presented as a working filter.
+   */
+  featured: boolean;
   caseStudy: CaseStudySection[];
 };
 
@@ -80,6 +92,7 @@ export const projects: Project[] = [
       "/images/projects/cafeerp-3.png",
       "/images/projects/cafeerp-4.png",
     ],
+    featured: true,
     caseStudy: [
       {
         title: "Problem",
@@ -159,3 +172,28 @@ export const projects: Project[] = [
     ],
   },
 ];
+
+/**
+ * Selectors. Carried over from the old project's `lib/projects.ts`, which
+ * existed so that the home page, the projects page and the detail page could
+ * not disagree about what the registry contains.
+ *
+ * Both return new arrays, so a caller cannot mutate the registry by accident.
+ */
+
+/** Every project, newest-first by completion year. */
+export function getAllProjects(): Project[] {
+  /*
+   * `[...projects].sort()` rather than `projects.toSorted()`: tsconfig targets
+   * ES2022, where `toSorted` does not exist, and widening `lib` for one call
+   * would let ES2023-only methods into every file in the project. The spread is
+   * what makes this safe — it sorts a copy, so the registry is never mutated.
+   */
+  // oxlint-disable-next-line unicorn/no-array-sort
+  return [...projects].sort((a, b) => b.year.localeCompare(a.year));
+}
+
+/** The projects marked `featured` — what the rail on the projects page shows. */
+export function getSelectedProjects(): Project[] {
+  return getAllProjects().filter((project) => project.featured);
+}

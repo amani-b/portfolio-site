@@ -33,7 +33,7 @@ export default function Background({ id }: { id: string }) {
   ];
 
   return (
-    <section id={id} className="border-t border-white/10 py-24 md:py-32">
+    <section id={id} className="border-t border-line py-24 md:py-32">
       <div className="grid gap-12 md:grid-cols-[1fr_2fr] md:gap-24">
         <div>
           <h2 className="sticky top-32 font-mono text-sm tracking-widest text-muted-foreground uppercase">
@@ -46,7 +46,7 @@ export default function Background({ id }: { id: string }) {
             <Reveal
               key={row.label}
               delay={index * 100}
-              className={index === 0 ? '' : 'border-t border-white/10'}
+              className={index === 0 ? '' : 'border-t border-line'}
             >
               <div
                 className={`grid gap-3 sm:grid-cols-[10rem_1fr] sm:gap-6 ${
