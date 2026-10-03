@@ -42,12 +42,32 @@ export default function ProjectRail({ projects }: { projects: Project[] }) {
     const rail = railRef.current;
     if (!rail) return;
     const max = rail.scrollWidth - rail.clientWidth;
-    const railLeft = rail.getBoundingClientRect().left;
+    const railRect = rail.getBoundingClientRect();
+    const gutter = parseFloat(getComputedStyle(rail).paddingLeft) || 0;
 
-    /* The card sitting at the left edge is the one the reader is looking at. */
+    /*
+     * The counter reports the snap position we are nearest, not "the card at the
+     * gutter". Those are the same thing until the last card cannot reach the
+     * gutter — at 375px the rail's remaining travel runs out first, so asking
+     * which card sits on the gutter answers "none of them" and the counter
+     * sticks at 01. Each card's snap offset is where the rail would have to
+     * scroll to bring it to the gutter, clamped to the distance actually
+     * available; the nearest of those is the position we are at.
+     */
+    const snapOffsets = Array.from(rail.children).map((child) => {
+      const fromContentStart =
+        child.getBoundingClientRect().left - railRect.left + rail.scrollLeft - gutter;
+      return Math.min(Math.max(fromContentStart, 0), max);
+    });
+
     let index = 0;
-    Array.from(rail.children).forEach((child, position) => {
-      if ((child as HTMLElement).getBoundingClientRect().left <= railLeft + 1) index = position;
+    let nearest = Infinity;
+    snapOffsets.forEach((offset, position) => {
+      const distance = Math.abs(offset - rail.scrollLeft);
+      if (distance < nearest) {
+        nearest = distance;
+        index = position;
+      }
     });
 
     setState({
@@ -94,20 +114,23 @@ export default function ProjectRail({ projects }: { projects: Project[] }) {
         <div className="flex items-baseline justify-between gap-4 border-b border-line pb-4">
           <h2
             id="selected-heading"
-            className="font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase"
+            className="font-mono text-xs tracking-[0.18em] text-muted-foreground uppercase"
           >
             Selected
           </h2>
 
           {/*
             Rendered only when there is somewhere to go. With a single selected
-            project the rail is not scrollable, and a pair of permanently
-            disabled arrows plus "01 / 01" would be chrome describing a feature
-            that is not present.
+            project the rail is not scrollable, and the counter would read a
+            bare "01" — a number with nothing to compare it to, sitting in the
+            heading row for no reason. The other two section headings on this
+            page are plain headings; this one is too, until it has a position to
+            report. The arrows go with it, since they would be permanently
+            disabled controls describing a feature that is not present.
           */}
           {state.scrollable ? (
             <div className="flex items-center gap-4">
-              <p className="font-mono text-[11px] text-foreground-dim tabular-nums">
+              <p className="font-mono text-xs text-foreground-dim tabular-nums">
                 <span className="sr-only">Showing </span>
                 {String(state.index + 1).padStart(2, '0')} / {total}
               </p>
@@ -132,11 +155,7 @@ export default function ProjectRail({ projects }: { projects: Project[] }) {
                 </button>
               </div>
             </div>
-          ) : (
-            <p className="font-mono text-[11px] text-foreground-dim tabular-nums">
-              {total} <span className="sr-only">selected projects</span>
-            </p>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -148,7 +167,7 @@ export default function ProjectRail({ projects }: { projects: Project[] }) {
            the entire point of a rail. Page-level overflow is still checked. */
         data-hscroll
         aria-labelledby="selected-heading"
-        className="rail mx-auto mt-6 w-full max-w-7xl gap-4 px-6 md:px-12 lg:px-24"
+        className="rail rail-gutter mx-auto mt-6 w-full max-w-7xl gap-4"
       >
         {projects.map((project, index) => (
           <li key={project.slug} className="w-[78vw] max-w-sm sm:w-[22rem] lg:w-[26rem]">
@@ -156,7 +175,7 @@ export default function ProjectRail({ projects }: { projects: Project[] }) {
               to={`#entry-${project.slug}`}
               className="group flex h-full flex-col border border-line bg-surface p-4 transition-colors hover:border-line-strong"
             >
-              <div className="flex items-baseline justify-between gap-3 font-mono text-[11px] tracking-[0.18em] text-foreground-dim uppercase">
+              <div className="flex items-baseline justify-between gap-3 font-mono text-xs tracking-[0.18em] text-foreground-dim uppercase">
                 <span className="tabular-nums">{String(index + 1).padStart(2, '0')}</span>
                 <span>{project.year}</span>
               </div>
@@ -167,8 +186,10 @@ export default function ProjectRail({ projects }: { projects: Project[] }) {
               >
                 {project.images[0] ? (
                   <img
-                    src={project.images[0]}
+                    src={project.images[0].src}
                     alt=""
+                    width={project.images[0].width}
+                    height={project.images[0].height}
                     loading="lazy"
                     decoding="async"
                     className="h-full w-full object-cover object-top transition-transform duration-500 ease-out group-hover:scale-[1.03]"
@@ -176,7 +197,7 @@ export default function ProjectRail({ projects }: { projects: Project[] }) {
                 ) : null}
               </div>
 
-              <h3 className="mt-4 font-display text-2xl leading-tight font-medium tracking-tight text-foreground">
+              <h3 className="mt-4 text-2xl leading-tight font-medium tracking-tight text-foreground">
                 <span className="link-underline">{project.title}</span>
               </h3>
 
@@ -184,11 +205,11 @@ export default function ProjectRail({ projects }: { projects: Project[] }) {
                 {project.tagline}
               </p>
 
-              <p className="mt-3 font-mono text-[11px] text-foreground-dim">
+              <p className="mt-3 font-mono text-xs text-foreground-dim">
                 {project.techStack.slice(0, 3).join(' · ')}
               </p>
 
-              <span className="mt-4 flex items-center gap-2 font-mono text-[11px] tracking-[0.18em] uppercase">
+              <span className="mt-4 flex items-center gap-2 font-mono text-xs tracking-[0.18em] uppercase">
                 Read the case study
                 <ArrowUpRight
                   size={13}

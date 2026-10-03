@@ -62,7 +62,6 @@
    * theme therefore steps down to #2563eb (4.95:1) — same blue, legible weight.
    */
   --accent: #2563eb;
-  --accent-foreground: #ffffff;
 
   /*
    * Modal scrim for the screenshot viewer. Deliberately NOT theme-mapped: a
@@ -95,7 +94,6 @@
   --wash-strong: color-mix(in srgb, var(--foreground) 10%, transparent);
 
   --accent: #3b82f6;
-  --accent-foreground: #ffffff;
 }
 
 /* No-JS fallback: no class has been applied, so follow the system. */
@@ -118,7 +116,6 @@
     --wash-strong: color-mix(in srgb, var(--foreground) 10%, transparent);
 
     --accent: #3b82f6;
-    --accent-foreground: #ffffff;
   }
 }
 
@@ -143,7 +140,6 @@
   --color-wash-strong: var(--wash-strong);
 
   --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
 
   --color-scrim: var(--scrim);
   --color-scrim-ink: var(--scrim-ink);
@@ -432,6 +428,43 @@ a:focus-visible .link-underline,
 .rail > * {
   scroll-snap-align: start;
   flex: 0 0 auto;
+}
+
+/*
+ * The rail is full-bleed but its content has to line up with the page gutter —
+ * and the gutter has to be the *scroll padding* too.
+ *
+ * Padding alone is not enough. The snapport of a scroll container starts at its
+ * border edge, so with `scroll-snap-type: mandatory` the browser snaps the first
+ * card to x=0 rather than to the gutter: the rail loaded 24px in on a phone
+ * (first card flush against the screen edge, misaligned with the heading above
+ * it) and 48px in at 768px, which was the full scrollable distance, so it landed
+ * on the last card with the first one clipped. `scroll-padding-inline` moves the
+ * snapport in by the same amount, so the two agree and scrollLeft 0 is a snap
+ * position.
+ *
+ * Padding and scroll-padding are set together, per breakpoint, in one place so
+ * they cannot drift apart. This is invisible with a single project — the rail is
+ * not scrollable, so nothing snaps — which is why it only appeared once a second
+ * project was added.
+ */
+.rail-gutter {
+  padding-inline: 1.5rem;
+  scroll-padding-inline: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .rail-gutter {
+    padding-inline: 3rem;
+    scroll-padding-inline: 3rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .rail-gutter {
+    padding-inline: 6rem;
+    scroll-padding-inline: 6rem;
+  }
 }
 
 @media (prefers-reduced-motion: no-preference) {

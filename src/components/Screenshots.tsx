@@ -10,9 +10,14 @@ import type { Project } from "../data/projects";
  * carousel: a two-up grid of bordered plates, a mono figure line, and a
  * full-screen viewer for reading the actual UI.
  *
+ * Everything it renders comes from `project.images` — the captions, the
+ * dimensions, the order. There is deliberately no per-project map in this file:
+ * a screenshot's description is content, so it lives with the rest of the
+ * content, and adding a project never means editing a component.
+ *
  * The viewer is portalled to <body> on purpose. `position: fixed` resolves
  * against the nearest ancestor that establishes a containing block, and the
- * entry is wrapped in a motion.div that carries a transform during its scroll
+ * entry is wrapped in an element that carries a transform during its scroll
  * entrance — inside it the viewer would be sized against the whole document
  * instead of the viewport. (The old portfolio hit exactly this bug.)
  *
@@ -23,34 +28,6 @@ import type { Project } from "../data/projects";
  * dialog is a sibling of `#root` under <body>, so it is unaffected.
  */
 
-/** What is actually on screen, read from the files — plus each file's real size. */
-const FIGURES: Record<string, { caption: string; width: number; height: number }> = {
-  "/images/projects/cafeerp-1.png": {
-    caption:
-      "The CafeERP sign-in screen: a centred card with username and password fields over a cream background.",
-    width: 1919,
-    height: 933,
-  },
-  "/images/projects/cafeerp-2.png": {
-    caption:
-      "The CafeERP admin dashboard: a sidebar with Categories, Menu, Orders, Kitchen, Reports, Inventory and Users, next to an inventory status panel, a “browse & manage” menu card and quick actions.",
-    width: 1894,
-    height: 955,
-  },
-  "/images/projects/cafeerp-3.png": {
-    caption:
-      "The CafeERP AI Assistant open over the dashboard, showing an action awaiting approval: a createOrder tool payload for two chicken chilli pizzas, with Confirm and Cancel buttons.",
-    width: 1891,
-    height: 952,
-  },
-  "/images/projects/cafeerp-4.png": {
-    caption:
-      "The CafeERP Users page: a table of accounts by role (admin, staff, kitchen) with status, password status and Edit, Deactivate and Delete actions.",
-    width: 1897,
-    height: 949,
-  },
-};
-
 /** Pixels of horizontal travel that commit a swipe. */
 const SWIPE_COMMIT = 56;
 
@@ -59,10 +36,9 @@ export default function Screenshots({ project }: { project: Project }) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const swipeRef = useRef<{ id: number; x: number; y: number } | null>(null);
-  const count = project.images.length;
-
-  const captionFor = (src: string, index: number) =>
-    FIGURES[src]?.caption ?? `${project.title} screenshot ${index + 1}`;
+  const images = project.images;
+  const count = images.length;
+  const isOpen = open !== null;
 
   const close = useCallback(() => {
     setOpen(null);
@@ -76,8 +52,14 @@ export default function Screenshots({ project }: { project: Project }) {
     [count],
   );
 
+  /*
+   * The page lock and the initial focus, keyed on *whether* the viewer is open
+   * rather than on which figure is showing. Keying it on `open` re-ran the
+   * whole block on every arrow press, which yanked focus off the control the
+   * reader was on and back to the dialog container each time.
+   */
   useEffect(() => {
-    if (open === null) return;
+    if (!isOpen) return;
     const { body, documentElement } = document;
     const root = document.getElementById("root");
     const gap = window.innerWidth - documentElement.clientWidth;
@@ -89,6 +71,16 @@ export default function Screenshots({ project }: { project: Project }) {
     root?.setAttribute("inert", "");
     dialogRef.current?.focus();
 
+    return () => {
+      body.style.overflow = previousOverflow;
+      body.style.paddingRight = previousPadding;
+      /* Must come off before focus returns to the plate, which lives in #root. */
+      root?.removeAttribute("inert");
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -103,14 +95,8 @@ export default function Screenshots({ project }: { project: Project }) {
     };
 
     window.addEventListener("keydown", onKeyDown);
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      body.style.overflow = previousOverflow;
-      body.style.paddingRight = previousPadding;
-      /* Must come off before focus returns to the plate, which lives in #root. */
-      root?.removeAttribute("inert");
-    };
-  }, [open, close, step]);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isOpen, close, step]);
 
   /* Touch only: a horizontal drag on the figure moves to the next one. A tap
      on the controls never starts a swipe, so buttons stay clickable. */
@@ -145,39 +131,35 @@ export default function Screenshots({ project }: { project: Project }) {
       </div>
 
       <ul className="mt-4 grid gap-4 sm:grid-cols-2">
-        {project.images.map((src, index) => {
-          const figure = FIGURES[src];
-          const caption = captionFor(src, index);
-          return (
-            <li key={src}>
-              <button
-                type="button"
-                onClick={(event) => {
-                  triggerRef.current = event.currentTarget;
-                  setOpen(index);
-                }}
-                /* The plate is the whole control, so the name has to say what
-                   it opens — the caption is otherwise only reachable once the
-                   viewer is already open. */
-                aria-label={`View figure ${index + 1} of ${count} larger — ${caption}`}
-                className="group block w-full cursor-zoom-in border border-line transition-colors hover:border-line-strong"
-              >
-                <img
-                  src={src}
-                  alt={caption}
-                  width={figure?.width}
-                  height={figure?.height}
-                  loading="lazy"
-                  decoding="async"
-                  className="aspect-[2/1] w-full object-cover object-top transition-transform duration-500 ease-out group-hover:scale-[1.02]"
-                />
-              </button>
-              <p className="mt-2 font-mono text-[11px] text-foreground-dim">
-                Fig. {String(index + 1).padStart(2, "0")} — {project.title}
-              </p>
-            </li>
-          );
-        })}
+        {images.map((image, index) => (
+          <li key={image.src}>
+            <button
+              type="button"
+              onClick={(event) => {
+                triggerRef.current = event.currentTarget;
+                setOpen(index);
+              }}
+              /* The plate is the whole control, so the name has to say what
+                 it opens — the caption is otherwise only reachable once the
+                 viewer is already open. */
+              aria-label={`View figure ${index + 1} of ${count} larger — ${image.alt}`}
+              className="group block w-full cursor-zoom-in border border-line transition-colors hover:border-line-strong"
+            >
+              <img
+                src={image.src}
+                alt={image.alt}
+                width={image.width}
+                height={image.height}
+                loading="lazy"
+                decoding="async"
+                className="aspect-[2/1] w-full object-cover object-top transition-transform duration-500 ease-out group-hover:scale-[1.02]"
+              />
+            </button>
+            <p className="mt-2 font-mono text-xs text-foreground-dim">
+              Fig. {String(index + 1).padStart(2, "0")} — {project.title}
+            </p>
+          </li>
+        ))}
       </ul>
 
       {open !== null
@@ -245,13 +227,13 @@ export default function Screenshots({ project }: { project: Project }) {
                 className="flex flex-1 touch-pan-y items-center justify-center overflow-hidden p-4"
               >
                 <img
-                  src={project.images[open]}
-                  alt={captionFor(project.images[open], open)}
+                  src={images[open].src}
+                  alt={images[open].alt}
                   className="max-h-full max-w-full border border-scrim-line bg-scrim"
                 />
               </div>
 
-              <p className="border-t border-scrim-line px-4 py-3 text-center font-mono text-[11px] text-scrim-ink-soft">
+              <p className="border-t border-scrim-line px-4 py-3 text-center font-mono text-xs text-scrim-ink-soft">
                 {/* Keyboard hints only where there is a keyboard. The previous
                     copy told phone users to press Esc. */}
                 <span className="md:hidden">Swipe or use the arrows between figures</span>

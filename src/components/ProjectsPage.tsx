@@ -20,21 +20,23 @@ import { ProjectEntry } from './Projects';
  * reader click five times to read five write-ups would be a strange thing for a
  * catalogue to do, and it is why the entries take a `defaultOpen` flag.
  */
+/*
+ * The two shared class strings for this page. Module scope, not component
+ * scope: they are constants, and defining them inside the render re-created
+ * them on every pass for no reason.
+ */
+const CONTAINER = 'mx-auto w-full max-w-7xl px-6 md:px-12 lg:px-24';
+const HEADING = 'font-mono text-xs tracking-[0.18em] text-muted-foreground uppercase';
+
 export default function ProjectsPage() {
   const all = getAllProjects();
   const selected = getSelectedProjects();
-
-  const HEADING =
-    'font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase';
-  const CONTAINER = 'mx-auto w-full max-w-7xl px-6 md:px-12 lg:px-24';
 
   return (
     <div className="pt-16 md:pt-24">
       {/* ————— Masthead ————— */}
       <section className={CONTAINER}>
-        <p className="rise font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase">
-          Index
-        </p>
+        <p className={`rise ${HEADING}`}>Index</p>
         <h1 className="rise mt-4 max-w-3xl text-4xl leading-[1.08] font-medium tracking-tight text-foreground md:text-6xl">
           {profile.indexHeading}
         </h1>

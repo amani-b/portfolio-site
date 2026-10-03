@@ -23,7 +23,7 @@ export default function Hero({ id }: { id: string }) {
   return (
     <section id={id} className="flex min-h-[85vh] flex-col justify-center pt-16 md:pt-20">
       <div className="rise max-w-3xl">
-        <p className="mb-6 font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase">
+        <p className="mb-6 font-mono text-xs tracking-[0.18em] text-muted-foreground uppercase">
           {profile.eyebrow}
         </p>
 

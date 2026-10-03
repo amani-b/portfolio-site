@@ -19,7 +19,7 @@ export default function Background({ id }: { id: string }) {
     {
       label: 'Building with',
       value: (
-        <ul className="flex flex-wrap gap-x-6 gap-y-2 font-mono text-sm text-foreground/80">
+        <ul className="flex flex-wrap gap-x-6 gap-y-2 font-mono text-sm text-foreground-dim">
           {education.buildingWith.map((item) => (
             <li key={item}>{item}</li>
           ))}

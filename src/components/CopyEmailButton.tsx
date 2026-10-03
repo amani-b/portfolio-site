@@ -66,7 +66,7 @@ export default function CopyEmailButton({ email }: { email: string }) {
         type="button"
         onClick={handleCopy}
         aria-label="Copy email address to clipboard"
-        className={`inline-flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-full border px-4 font-mono text-[11px] tracking-[0.18em] uppercase transition-colors ${
+        className={`inline-flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-full border px-4 font-mono text-xs tracking-[0.18em] uppercase transition-colors ${
           copied
             ? "border-accent text-accent"
             : "border-line text-foreground-dim hover:border-line-strong hover:text-foreground"

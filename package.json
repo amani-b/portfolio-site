@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Portfolio of Amanuel Berhanu — a single-page React app built with Vite.",
+  "description": "Portfolio of Amanuel Berhanu — a two-route React app built with Vite.",
   "scripts": {
     "dev": "vite --port 3000",
     "dev:host": "vite --port 3000 --host",

@@ -90,6 +90,7 @@ function collect() {
     targets: [],
     unnamed: [],
     emptyAlt: [],
+    unsized: [],
     headings: [],
     duplicateIds: [],
     tinyText: [],
@@ -157,6 +158,20 @@ function collect() {
     if (!img.hasAttribute("alt")) out.emptyAlt.push(`${describe(img)} has no alt attribute`);
     else if (!img.getAttribute("alt").trim() && !img.closest('[aria-hidden="true"]')) {
       out.emptyAlt.push(`${describe(img)} has an empty alt but is not aria-hidden`);
+    }
+  }
+
+  /*
+   * Every image must reserve its box. Without intrinsic dimensions the page
+   * reflows as each screenshot arrives, and the failure is silent — the image
+   * still renders. This is the DOM half of the rule the data model already
+   * enforces (`ProjectImage` requires `width` and `height`); it catches a
+   * component that forgets to pass them through, which is exactly the shape of
+   * the bug that made this necessary.
+   */
+  for (const img of document.querySelectorAll("img")) {
+    if (!img.getAttribute("width") || !img.getAttribute("height")) {
+      out.unsized.push(`${describe(img)} has no intrinsic width/height`);
     }
   }
 
@@ -435,6 +450,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
         /* ————— alt text ————— */
         for (const item of data.emptyAlt.slice(0, 8)) fail(where, item);
+
+        /* ————— images that reserve their box ————— */
+        for (const item of data.unsized.slice(0, 8)) fail(where, item);
 
         /* ————— heading order ————— */
         const h1s = data.headings.filter((h) => h.level === 1);

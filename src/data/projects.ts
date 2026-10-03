@@ -22,6 +22,28 @@ export type CaseStudySection = {
   blocks: Block[];
 };
 
+/**
+ * One screenshot. Everything the UI needs to render it is here, so adding a
+ * project never means touching a component.
+ */
+export type ProjectImage = {
+  /** Path relative to `/public`. See the asset convention in the README. */
+  src: string;
+  /**
+   * What the image actually shows, in words. This is the plate's `alt` text and
+   * the viewer's label, so it is content — "the Users page, a table of accounts
+   * by role" tells a reader who cannot see it what they are missing, where
+   * "CafeERP screenshot 4" tells them nothing.
+   */
+  alt: string;
+  /**
+   * Intrinsic pixel size, read from the file. Reserving the box from the real
+   * dimensions is what stops the page reflowing as each screenshot arrives.
+   */
+  width: number;
+  height: number;
+};
+
 export type Project = {
   slug: string;
   title: string;
@@ -38,8 +60,11 @@ export type Project = {
   summary: string;
   highlights: string[];
   links: { liveDemo: string; repo: string };
-  /** Paths relative to /public. Exactly the four the old registry displayed. */
-  images: string[];
+  /**
+   * Screenshots, in the order they should be shown. The first is also the
+   * thumbnail on the rail card, so lead with the one that reads best small.
+   */
+  images: ProjectImage[];
   /**
    * Whether this project appears in the rail on the projects page. The field is
    * carried over from the old registry, where it drove the home page's flagship
@@ -86,11 +111,44 @@ export const projects: Project[] = [
       liveDemo: "https://cafeerp-demo.onrender.com",
       repo: "https://github.com/amani-b/CafeERP",
     },
+    /*
+     * Ordered strongest-first, not 1..5: `images[0]` is the rail card's
+     * thumbnail and it is cropped to the top of the frame, so the sign-in
+     * screen — mostly empty cream — reads worst of the five at that size and
+     * sits last. The assistant and its action log are adjacent because they are
+     * one story: it acts, and the log proves it did.
+     */
     images: [
-      "/images/projects/cafeerp-1.png",
-      "/images/projects/cafeerp-2.png",
-      "/images/projects/cafeerp-3.png",
-      "/images/projects/cafeerp-4.png",
+      {
+        src: "/images/projects/cafeerp-2.png",
+        alt: "The CafeERP admin dashboard: a sidebar with Categories, Menu, Orders, Kitchen, Reports, Inventory and Users, next to an inventory status panel, a “browse & manage” menu card and quick actions.",
+        width: 1894,
+        height: 955,
+      },
+      {
+        src: "/images/projects/cafeerp-3.png",
+        alt: "The CafeERP AI Assistant open over the dashboard, showing an action awaiting approval: a createOrder tool payload for two chicken chilli pizzas, with Confirm and Cancel buttons.",
+        width: 1891,
+        height: 952,
+      },
+      {
+        src: "/images/projects/cafeerp-5.png",
+        alt: "The CafeERP AI Action Log: an audit table of every AI-initiated action, separate from chat history, listing when it ran, who initiated it, the tool and action, its parameters, the trigger, its status and its result.",
+        width: 1894,
+        height: 951,
+      },
+      {
+        src: "/images/projects/cafeerp-4.png",
+        alt: "The CafeERP Users page: a table of accounts by role (admin, staff, kitchen) with status, password status and Edit, Deactivate and Delete actions.",
+        width: 1897,
+        height: 949,
+      },
+      {
+        src: "/images/projects/cafeerp-1.png",
+        alt: "The CafeERP sign-in screen: a centred card with username and password fields over a cream background.",
+        width: 1919,
+        height: 933,
+      },
     ],
     featured: true,
     caseStudy: [

@@ -19,7 +19,7 @@ import { Link } from '../lib/router';
  * contents list rather than decoration.
  */
 export default function ProjectsTable({ projects }: { projects: Project[] }) {
-  const HEAD = 'font-mono text-[11px] tracking-[0.18em] text-muted-foreground uppercase';
+  const HEAD = 'font-mono text-xs tracking-[0.18em] text-muted-foreground uppercase';
 
   return (
     <table className="w-full border-collapse text-left">
@@ -68,7 +68,7 @@ export default function ProjectsTable({ projects }: { projects: Project[] }) {
                 every wrapped line. The old site's project row joined the stack
                 the same way, and the rail card still does.
               */}
-              <p className="font-mono text-[11px] leading-relaxed text-foreground-dim">
+              <p className="font-mono text-xs leading-relaxed text-foreground-dim">
                 {project.techStack.join(' · ')}
               </p>
             </td>
