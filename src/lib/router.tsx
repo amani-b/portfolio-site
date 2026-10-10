@@ -5,17 +5,18 @@ import {
 } from 'react';
 
 /**
- * A two-route router, written by hand.
+ * A hand-written router: home plus one detail page per project.
  *
- * The site was a single page; it now has a second document at `/projects`. A
- * routing library (react-router and friends) was not added, for the same reason
- * an animation library was not: this needs `pushState`, `popstate`, and one
- * component that intercepts a plain left-click. That is the whole surface.
+ * The site is a single page with a detail document per project at
+ * `/projects/<slug>`. A routing library (react-router and friends) was not
+ * added, for the same reason an animation library was not: this needs
+ * `pushState`, `popstate`, one component that intercepts a plain left-click,
+ * and a slug matcher. That is the whole surface.
  *
- * Why real URLs rather than a hash route: `/projects` is a destination worth
- * linking to, sharing, and bookmarking, and a `#/projects` URL is none of those
- * things. It costs one rewrite rule in `vercel.json` (see the note there) and
- * nothing at runtime.
+ * Why real URLs rather than a hash route: a project page is a destination
+ * worth linking to, sharing, and bookmarking, and a `#/projects/x` URL is
+ * none of those things. It costs one rewrite rule in `vercel.json` (see the
+ * note there) and nothing at runtime.
  *
  * The path is held in a module variable and read through `useSyncExternalStore`,
  * so the DOM's location is the single source of truth — the same pattern the
@@ -66,13 +67,45 @@ window.addEventListener('popstate', () => {
 
 export const ROUTES = { home: '/', projects: '/projects' } as const;
 
+/**
+ * `/projects/cafeerp` → `"cafeerp"`. Anything else — `/`, bare `/projects`,
+ * deeper paths — → null. Slugs are `[a-z0-9-]` by registry convention, so no
+ * decoding is needed: the raw segment compares directly.
+ */
+export function matchDetail(pathname: string): string | null {
+  const parts = normalize(pathname).split('/');
+  if (parts.length === 3 && parts[1] === 'projects' && parts[2] !== '') {
+    return parts[2];
+  }
+  return null;
+}
+
+/** The detail slug in the current URL, or null. Re-renders on navigation. */
+export function useProjectSlug(): string | null {
+  return matchDetail(usePath());
+}
+
+/**
+ * Silent redirect: replaces the history entry instead of pushing one, so a
+ * dead URL (bare `/projects`, unknown slug) never litters the back stack.
+ * The caller renders the destination immediately; this only fixes the URL.
+ */
+export function redirect(to: string) {
+  const url = new URL(to, window.location.href);
+  window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+  const next = normalize(url.pathname);
+  if (next === current) return;
+  current = next;
+  emit();
+}
+
 /** The current pathname, normalized. Re-renders the caller when it changes. */
 export function usePath(): string {
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
 
 export function navigate(to: string) {
-  /* Resolved against the current URL, not the origin: a relative `#entry-x`
+  /* Resolved against the current URL, not the origin: a relative `#work`
      must keep the pathname it was written on. Resolving against the origin
      would turn it into `/`, which is a different route. */
   const url = new URL(to, window.location.href);

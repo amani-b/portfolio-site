@@ -1,14 +1,15 @@
 /*
- * Render audit for portfolio-architect.
+ * Render audit for portfolio-site.
  *
- * Loads both routes at six viewport widths and reports the classes of defect
- * that are invisible in source review: horizontal overflow, sub-44px tap
- * targets, missing accessible names, broken heading order, images without alt
- * text, duplicate ids, and any console/runtime error.
+ * Loads home and the detail document at six viewport widths and reports the
+ * classes of defect that are invisible in source review: horizontal overflow,
+ * sub-44px tap targets, missing accessible names, broken heading order,
+ * images without alt text, duplicate ids, and any console/runtime error.
  *
- * It also drives the interactive components — the case-study disclosure, the
- * screenshot viewer, the selected-projects rail and the theme switch — because
- * "it renders" is not the same as "it works".
+ * It also drives the interactive components — the Featured/Index toggle, the
+ * detail document, the screenshot viewer, routing (including the silent
+ * redirect for dead URLs) and the theme switch — because "it renders" is not
+ * the same as "it works".
  *
  * Usage:  npm run dev        (in one shell)
  *         npm run audit      (in another)
@@ -41,12 +42,12 @@ const VIEWPORTS = [
   { name: "desktop-1440", width: 1440, height: 900, dpr: 2, mobile: false },
 ];
 
-/* Both routes are audited at every width. The projects page has its own
-   heading tree, its own tap targets and the only horizontal scroller on the
-   site, so passing on the home page says nothing about it. */
+/* Both documents are audited at every width. The detail page has its own
+   heading tree, its own tap targets and the screenshot viewer, so passing on
+   the home page says nothing about it. */
 const ROUTES = [
   { label: "home", path: "/" },
-  { label: "index", path: "/projects" },
+  { label: "detail", path: "/projects/cafeerp" },
 ];
 
 const problems = [];
@@ -96,26 +97,13 @@ function collect() {
     tinyText: [],
     unrevealed: [],
     tables: [],
-    rails: [],
     staleAnchors: [],
   };
-
-  /*
-   * An intentional horizontal scroller — the selected-projects rail — is marked
-   * `data-hscroll`, and everything inside it is *supposed* to extend past the
-   * right edge. Without this, the rail would be reported as broken overflow on
-   * every run and the check would have to be ignored, which is how a check
-   * stops being one. Page-level overflow is still caught separately, and it is
-   * unaffected: an `overflow-x: auto` box clips, so it never contributes to
-   * documentElement.scrollWidth.
-   */
-  const inHorizontalScroller = (el) => Boolean(el.closest("[data-hscroll]"));
 
   /* Elements that stick out past the right edge of the viewport. */
   for (const el of document.querySelectorAll("body *")) {
     const style = getComputedStyle(el);
     if (style.display === "none" || style.visibility === "hidden") continue;
-    if (inHorizontalScroller(el)) continue;
     const rect = el.getBoundingClientRect();
     if (rect.width === 0 && rect.height === 0) continue;
     if (rect.right > window.innerWidth + 1 || rect.left < -1) {
@@ -253,19 +241,6 @@ function collect() {
     if (!document.querySelector(`[id="${CSS.escape(fragment.slice(1))}"]`)) {
       out.staleAnchors.push(`${describe(link)} → ${fragment}`);
     }
-  }
-
-  /* Rails: how far each one can actually travel. */
-  for (const rail of document.querySelectorAll("[data-hscroll]")) {
-    out.rails.push({
-      cards: rail.children.length,
-      scrollable: rail.scrollWidth - rail.clientWidth > 1,
-      label: rail.getAttribute("aria-labelledby"),
-      labelText: (() => {
-        const id = rail.getAttribute("aria-labelledby");
-        return id ? (document.getElementById(id)?.textContent.trim() ?? null) : null;
-      })(),
-    });
   }
 
   return out;
@@ -476,13 +451,17 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
           fail(where, `in-page link resolves to no element: ${item}`);
         }
 
-        /* ————— the index page's contents list ————— */
-        if (route.label === "index") {
-          if (data.tables.length !== 1) {
-            fail(where, `expected exactly one <table>, found ${data.tables.length}`);
-          } else {
+        /* ————— the home page's contents list —————
+           Home loads in the Featured view, so the table is one toggle away:
+           exactly one of the teaser card and the table is present. The
+           toggle interaction below drives both directions and counts the rows. */
+        if (route.label === "home") {
+          const cards = data.headings.filter((h) => h.level === 3 && h.text === "CafeERP").length;
+          if (data.tables.length > 1) {
+            fail(where, `expected at most one <table>, found ${data.tables.length}`);
+          } else if (data.tables.length === 1) {
             const table = data.tables[0];
-            const expected = ["Project", "Year", "Tech stack"];
+            const expected = ["Project", "Tech stack", "Year"];
             if (table.columns.join("|") !== expected.join("|")) {
               fail(where, `table columns are [${table.columns.join(", ")}], expected [${expected.join(", ")}]`);
             }
@@ -491,16 +470,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
               fail(where, `only ${table.rowHeaders} of ${table.rows} rows are headed by their subject`);
             }
             if (!table.caption) fail(where, "table has no <caption>");
-          }
-
-          if (data.rails.length !== 1) {
-            fail(where, `expected exactly one horizontal rail, found ${data.rails.length}`);
-          } else {
-            const rail = data.rails[0];
-            if (rail.cards < 1) fail(where, "the rail has no cards");
-            if (!rail.label || !rail.labelText) {
-              fail(where, "the rail is not labelled by a heading");
-            }
+          } else if (cards < 1) {
+            fail(where, "home shows neither the teaser card nor the table");
           }
         }
 
@@ -523,8 +494,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     }
 
     /* ————————————————————————————————————————————————————————————
-     * Interaction: the case-study disclosure and the screenshot viewer.
-     * Both live on the home page, where the entries start collapsed.
+     * Interaction: the Work browser (Featured/Index toggle), the detail
+     * document, and the screenshot viewer.
      * ———————————————————————————————————————————————————————————— */
     const page = await browser.newPage();
     const interactionErrors = [];
@@ -533,58 +504,95 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     await page.goto(BASE + "/", { waitUntil: "networkidle0", timeout: 45000 });
     await settle(page);
 
-    /* ————— case-study disclosure ————— */
-    const toggle = await page.$('button[aria-controls="case-study-cafeerp"]');
-    if (!toggle) {
-      fail("interaction", "case-study disclosure button not found");
+    /* ————— the Featured/Index toggle ————— */
+    const browserState = await page.evaluate(() => {
+      const group = document.querySelector('[role="group"][aria-label="Work view"]');
+      const buttons = group ? Array.from(group.querySelectorAll("button")) : [];
+      return {
+        options: buttons.map((b) => b.textContent.trim()),
+        pressed: buttons.map((b) => b.getAttribute("aria-pressed")),
+        card: !!document.querySelector("#work article"),
+        table: !!document.querySelector("#work table"),
+        steppers: document.querySelectorAll("#work button[aria-label='Previous project'], #work button[aria-label='Next project']").length,
+      };
+    });
+    if (browserState.options.join("|") !== "Featured|Index") {
+      fail("interaction", `view toggle options are [${browserState.options.join(", ")}], expected Featured, Index`);
+    }
+    if (browserState.pressed.join("|") !== "true|false") {
+      fail("interaction", "Featured is not the default pressed view");
+    }
+    if (!browserState.card || browserState.table) {
+      fail("interaction", "the Featured view does not show exactly one teaser card");
+    }
+    /* One project means nothing to step through: steppers stay out entirely. */
+    if (browserState.steppers !== 0) {
+      fail("interaction", `expected no steppers for a single project, found ${browserState.steppers}`);
+    }
+
+    const indexToggle = await page.evaluateHandle(() => {
+      const group = document.querySelector('[role="group"][aria-label="Work view"]');
+      return group ? Array.from(group.querySelectorAll("button")).find((b) => b.textContent.trim() === "Index") : null;
+    });
+    if (!indexToggle.asElement()) {
+      fail("interaction", "Index toggle button not found");
     } else {
-      const before = await page.evaluate(() => {
-        const panel = document.getElementById("case-study-cafeerp");
-        return {
-          expanded: document
-            .querySelector('button[aria-controls="case-study-cafeerp"]')
-            .getAttribute("aria-expanded"),
-          height: panel.getBoundingClientRect().height,
-          inert: panel.hasAttribute("inert"),
-        };
-      });
-      if (before.expanded !== "false") fail("interaction", `disclosure starts aria-expanded=${before.expanded}, expected false`);
-      if (before.height > 2) fail("interaction", `collapsed panel has height ${before.height}px, expected ~0`);
-      if (!before.inert) fail("interaction", "collapsed panel is not inert, so its prose stays in the accessibility tree");
+      await indexToggle.asElement().click();
+      await sleep(500);
+      const indexView = await page.evaluate(() => ({
+        card: !!document.querySelector("#work article"),
+        table: !!document.querySelector("#work table"),
+        rows: document.querySelectorAll("#work table tbody tr").length,
+        pressed: document.querySelector('[role="group"][aria-label="Work view"] [aria-pressed="true"]')?.textContent.trim() ?? null,
+      }));
+      if (indexView.card || !indexView.table) fail("interaction", "Index view does not show the table");
+      if (indexView.rows < 1) fail("interaction", "Index table has no rows");
+      if (indexView.pressed !== "Index") fail("interaction", "Index toggle did not report aria-pressed=true");
+      notes.push(`[interaction] toggle → Index: table with ${indexView.rows} row(s)`);
 
-      await toggle.click();
-      await sleep(600);
-      const after = await page.evaluate(() => {
-        const panel = document.getElementById("case-study-cafeerp");
-        const sections = panel.querySelectorAll("section");
-        return {
-          expanded: document
-            .querySelector('button[aria-controls="case-study-cafeerp"]')
-            .getAttribute("aria-expanded"),
-          height: Math.round(panel.getBoundingClientRect().height),
-          inert: panel.hasAttribute("inert"),
-          sections: sections.length,
-          focusable: panel.querySelectorAll("a[href], button").length,
-        };
+      const featuredToggle = await page.evaluateHandle(() => {
+        const group = document.querySelector('[role="group"][aria-label="Work view"]');
+        return group ? Array.from(group.querySelectorAll("button")).find((b) => b.textContent.trim() === "Featured") : null;
       });
-      if (after.expanded !== "true") fail("interaction", "disclosure did not report aria-expanded=true after click");
-      if (after.height < 400) fail("interaction", `expanded panel is only ${after.height}px tall — content may not be rendering`);
-      if (after.inert) fail("interaction", "expanded panel is still inert");
-      if (after.sections !== 5) fail("interaction", `expected 5 case-study sections, found ${after.sections}`);
-      notes.push(
-        `[interaction] disclosure: ${before.height}px → ${after.height}px, ${after.sections} sections, ${after.focusable} focusable`,
-      );
+      await featuredToggle.asElement().click();
+      await sleep(500);
+      const backToFeatured = await page.evaluate(() => ({
+        card: !!document.querySelector("#work article"),
+        table: !!document.querySelector("#work table"),
+      }));
+      if (!backToFeatured.card || backToFeatured.table) {
+        fail("interaction", "Featured toggle did not restore the teaser card");
+      }
+    }
 
-      /* The "What I'd Do Differently" retrospective must be present and marked. */
-      const hasRetro = await page.evaluate(() =>
-        Array.from(document.querySelectorAll("#case-study-cafeerp h4")).some((h) =>
+    /* ————— the detail document: open, complete, no disclosure ————— */
+    await page.goto(BASE + "/projects/cafeerp", { waitUntil: "networkidle0", timeout: 45000 });
+    await settle(page);
+    const detail = await page.evaluate(() => {
+      const main = document.getElementById("main");
+      return {
+        h1: document.querySelector("h1")?.textContent.trim() ?? null,
+        sections: main ? main.querySelectorAll("section").length : 0,
+        disclosure: !!document.querySelector('button[aria-controls^="case-study-"]'),
+        plates: main ? main.querySelectorAll("ul li button").length : 0,
+        retro: Array.from(main ? main.querySelectorAll("h2") : []).some((h) =>
           h.textContent.includes("What I'd Do Differently"),
         ),
-      );
-      if (!hasRetro) fail("interaction", "retrospective section missing from the case study");
-
-      await page.screenshot({ path: path.join(OUT, "home-case-study-open.png"), fullPage: false });
-    }
+        back: !!document.querySelector('a[href="/#work"]'),
+        neighbors: Array.from(document.querySelectorAll('nav[aria-label="More projects"] a')).map((a) => a.getAttribute("href")),
+        title: document.title,
+      };
+    });
+    if (detail.h1 !== "CafeERP") fail("interaction", `detail h1 is "${detail.h1}", expected CafeERP`);
+    if (detail.sections !== 5) fail("interaction", `expected 5 case-study sections, found ${detail.sections}`);
+    if (detail.disclosure) fail("interaction", "detail page hides prose behind a disclosure — the page is the study");
+    if (!detail.retro) fail("interaction", "retrospective section missing from the detail page");
+    if (!detail.back) fail("interaction", "detail page has no back link to /#work");
+    if (!detail.title.startsWith("CafeERP")) fail("interaction", `document title is "${detail.title}" on the detail page`);
+    notes.push(
+      `[interaction] detail: h1="${detail.h1}", ${detail.sections} sections, ${detail.plates} plates, title="${detail.title}"`,
+    );
+    await page.screenshot({ path: path.join(OUT, "detail-open.png"), fullPage: false });
 
     /* ————— screenshot viewer ————— */
     await page.evaluate(() => window.scrollTo(0, 0));
@@ -619,7 +627,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
        */
       const modal = await page.evaluate(() => {
         const root = document.getElementById("root");
-        const probe = root.querySelector('a[href="#work"]');
+        const probe = root.querySelector('a[href="/#work"]');
         probe.focus();
         return {
           rootInert: root.hasAttribute("inert"),
@@ -660,104 +668,107 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     }
 
     /* ————————————————————————————————————————————————————————————
-     * Routing: the Index link, the table's contents links, and the entries
-     * arriving open on the index page.
+     * Routing: the table's detail links, the back link, the silent redirect
+     * for dead URLs, and the back button through the history stack.
+     *
+     * Starts from a fresh home page in Index view, so the stack under test
+     * is `/` → `/projects/cafeerp` and one back means what it asserts.
      * ———————————————————————————————————————————————————————————— */
-    await page.evaluate(() => window.scrollTo(0, 0));
-    const indexLink = await page.evaluateHandle(() => {
-      const link = document.querySelector('a[href="/projects"]');
-      return link || null;
+    await page.goto(BASE + "/", { waitUntil: "networkidle0", timeout: 45000 });
+    await settle(page);
+    /* The table lives behind the Index toggle; the Featured card is default. */
+    await page.evaluate(() => {
+      const group = document.querySelector('[role="group"][aria-label="Work view"]');
+      const target = group
+        ? Array.from(group.querySelectorAll("button")).find((b) => b.textContent.trim() === "Index")
+        : null;
+      if (target) target.click();
     });
-    const indexEl = indexLink.asElement();
-    if (!indexEl) {
-      fail("routing", "no link to /projects on the home page");
+    await sleep(500);
+    const tableLink = await page.evaluateHandle(() =>
+      document.querySelector('#work table a[href="/projects/cafeerp"]'),
+    );
+    const tableEl = tableLink.asElement();
+    if (!tableEl) {
+      fail("routing", "the table's project name does not link to /projects/cafeerp");
     } else {
-      await indexEl.click();
+      await tableEl.click();
       await sleep(700);
       const landed = await page.evaluate(() => ({
         path: window.location.pathname,
         title: document.title,
         h1: document.querySelector("h1")?.textContent.trim().slice(0, 60) ?? null,
-        entriesOpen: document.querySelectorAll('[data-open="true"]').length,
-        entryId: document.getElementById("entry-cafeerp") !== null,
         scrolledToTop: window.scrollY < 4,
       }));
-      if (landed.path !== "/projects") fail("routing", `Index link landed on ${landed.path}, expected /projects`);
-      if (!landed.title.startsWith("Index")) fail("routing", `document title is "${landed.title}" after navigating to the index`);
-      if (landed.entriesOpen < 1) fail("routing", "the index page's case studies did not arrive open");
-      if (!landed.entryId) fail("routing", "the index page has no #entry-cafeerp anchor for the table to link to");
-      if (!landed.scrolledToTop) fail("routing", "the index page did not open at the top");
-      notes.push(`[routing] Index link → ${landed.path}, title="${landed.title}", h1="${landed.h1}", ${landed.entriesOpen} open panel(s)`);
+      if (landed.path !== "/projects/cafeerp") {
+        fail("routing", `table link landed on ${landed.path}, expected /projects/cafeerp`);
+      }
+      if (!landed.title.startsWith("CafeERP")) {
+        fail("routing", `document title is "${landed.title}" on the detail page`);
+      }
+      if (!landed.scrolledToTop) fail("routing", "the detail page did not open at the top");
+      notes.push(`[routing] table link → ${landed.path}, title="${landed.title}", h1="${landed.h1}"`);
 
-      /* The table's row link must reach the case study. */
-      const tableLink = await page.evaluateHandle(() =>
-        document.querySelector('table a[href="#entry-cafeerp"]'),
-      );
-      const tableEl = tableLink.asElement();
-      if (!tableEl) {
-        fail("routing", "the table's project name does not link to the case study");
+      /* The back link returns home and lands on the Work section it names. */
+      const backLink = await page.evaluateHandle(() => document.querySelector('a[href="/#work"]'));
+      const backEl = backLink.asElement();
+      if (!backEl) {
+        fail("routing", "detail page has no back link to /#work");
       } else {
-        await tableEl.click();
+        await backEl.click();
         await sleep(700);
-        const anchored = await page.evaluate(() => {
-          /* The visible Primary nav — the desktop bar on this viewport, not the
-             phone pill, which is `md:hidden` and measures zero. */
+        const backHome = await page.evaluate(() => {
+          const work = document.getElementById("work");
           const nav = Array.from(document.querySelectorAll('nav[aria-label="Primary"]')).find(
             (el) => el.getBoundingClientRect().height > 0,
           );
           return {
+            path: window.location.pathname,
             hash: window.location.hash,
-            top: Math.round(document.getElementById("entry-cafeerp").getBoundingClientRect().top),
+            top: work ? Math.round(work.getBoundingClientRect().top) : null,
             navHeight: nav ? Math.round(nav.getBoundingClientRect().height) : 0,
           };
         });
-        if (anchored.hash !== "#entry-cafeerp") {
-          fail("routing", `table link set hash "${anchored.hash}", expected #entry-cafeerp`);
+        if (backHome.path !== "/" || backHome.hash !== "#work") {
+          fail("routing", `back link landed on ${backHome.path}${backHome.hash}, expected /#work`);
         }
-        /*
-         * The target has to clear the fixed nav. This is not a formality: the
-         * entry starts at `translate: 0 16px` while it is unrevealed, so if the
-         * id sat on the animating element the browser would scroll to the
-         * offset position and the entry would then rise into the nav. That is
-         * exactly what happened before the anchor moved to a plain wrapper.
-         */
-        if (anchored.top < anchored.navHeight) {
-          fail(
-            "routing",
-            `#entry-cafeerp landed at ${anchored.top}px, under the ${anchored.navHeight}px fixed nav — the anchor target is obscured`,
-          );
+        if (backHome.top !== null && backHome.top < backHome.navHeight) {
+          fail("routing", `#work landed at ${backHome.top}px, under the ${backHome.navHeight}px fixed nav`);
         }
-        notes.push(
-          `[routing] table link → ${anchored.hash}, entry top ${anchored.top}px vs ${anchored.navHeight}px nav`,
-        );
+        notes.push(`[routing] back link → ${backHome.path}${backHome.hash}, work top ${backHome.top}px`);
       }
 
       /*
-       * Two steps back, because the table link pushed a history entry of its
-       * own: the stack is `/` → `/projects` → `/projects#entry-cafeerp`. The
-       * first back drops the hash (same pathname, so the router must NOT
-       * re-render), and the second is the one that has to reach `/` through the
-       * `popstate` listener.
+       * One step back through the history stack: detail → home through the
+       * `popstate` listener. (The back link above pushed its own entry, so go
+       * back twice to return past it: back-link landing, then the detail.)
        */
       await page.goBack({ waitUntil: "networkidle0" });
       await sleep(500);
-      const afterFirstBack = await page.evaluate(() => window.location.pathname);
-      if (afterFirstBack !== "/projects") {
-        fail("routing", `first back landed on ${afterFirstBack}, expected /projects`);
-      }
-
       await page.goBack({ waitUntil: "networkidle0" });
       await sleep(500);
-      const afterSecondBack = await page.evaluate(() => ({
+      const afterBack = await page.evaluate(() => ({
         path: window.location.pathname,
         h1: document.querySelector("h1")?.textContent.trim().slice(0, 40) ?? null,
       }));
-      if (afterSecondBack.path !== "/") {
-        fail("routing", `second back landed on ${afterSecondBack.path}, expected /`);
+      if (afterBack.path !== "/") {
+        fail("routing", `back landed on ${afterBack.path}, expected /`);
       }
-      notes.push(
-        `[routing] back twice: ${afterFirstBack} → ${afterSecondBack.path} (h1="${afterSecondBack.h1}")`,
-      );
+      notes.push(`[routing] back through history → ${afterBack.path} (h1="${afterBack.h1}")`);
+    }
+
+    /* ————— dead URLs redirect home silently ————— */
+    for (const dead of ["/projects", "/projects/does-not-exist"]) {
+      await page.goto(BASE + dead, { waitUntil: "networkidle0", timeout: 45000 });
+      await sleep(500);
+      const resolved = await page.evaluate(() => ({
+        path: window.location.pathname,
+        h1: document.querySelector("h1")?.textContent.trim().slice(0, 40) ?? null,
+      }));
+      if (resolved.path !== "/") {
+        fail("routing", `${dead} resolved to ${resolved.path}, expected a silent redirect to /`);
+      }
+      notes.push(`[routing] ${dead} → ${resolved.path} (h1="${resolved.h1}")`);
     }
 
     /* ————————————————————————————————————————————————————————————
@@ -947,14 +958,15 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         if (parseFloat(style.opacity) < 0.9) hidden.push(el.tagName + " " + el.textContent.trim().slice(0, 40));
       }
       /* The headline's rule is drawn at rest, so a reduced-motion visitor sees a
-         mark rather than a gap. */
-      const swept = document.querySelector(".underline-sweep");
+         mark rather than a gap. There is no arrival sweep anymore — the check
+         reads the static drawn rule directly. */
+      const drawn = document.querySelector(".underline-drawn");
       return {
         hidden,
         h1: document.querySelector("h1")?.textContent.trim().slice(0, 60) ?? null,
         scrollBehavior: getComputedStyle(document.documentElement).scrollBehavior,
-        headlineRule: swept
-          ? getComputedStyle(swept).backgroundSize
+        headlineRule: drawn
+          ? getComputedStyle(drawn).backgroundSize
           : null,
       };
     });
@@ -964,8 +976,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     if (rm.scrollBehavior !== "auto") {
       fail("reduced-motion", `smooth scrolling still on (scroll-behavior: ${rm.scrollBehavior})`);
     }
-    if (rm.headlineRule && rm.headlineRule.startsWith("0%")) {
-      fail("reduced-motion", `the headline underline is undrawn (${rm.headlineRule})`);
+    if (!rm.headlineRule || rm.headlineRule.startsWith("0%")) {
+      fail("reduced-motion", `the headline underline is missing or undrawn (${rm.headlineRule})`);
     }
     notes.push(
       `[reduced-motion] no hidden content; scroll-behavior: ${rm.scrollBehavior}; headline rule: ${rm.headlineRule}; h1="${rm.h1}"`,

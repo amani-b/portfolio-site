@@ -21,7 +21,7 @@ export default function Hero({ id }: { id: string }) {
   const hasRule = parts.length === 2;
 
   return (
-    <section id={id} className="flex min-h-[85vh] flex-col justify-center pt-16 md:pt-20">
+    <section id={id} className="flex min-h-[62vh] flex-col justify-center pt-16 md:pt-20">
       <div className="rise max-w-3xl">
         <p className="mb-6 font-mono text-xs tracking-[0.18em] text-muted-foreground uppercase">
           {profile.eyebrow}
@@ -32,13 +32,11 @@ export default function Hero({ id }: { id: string }) {
             <>
               {parts[0]}
               {/*
-                `underline-drawn` holds the rule at full width for anyone who
-                never gets the animation (reduced motion, or a browser that
-                drops the keyframe), and `underline-sweep` draws it once on
-                arrival. The two are separate classes on purpose: the drawn
-                state is the truth, the sweep is the flourish.
+                `underline-drawn` holds the rule at full width at rest, for
+                every visitor in every motion mode — the drawn state is the
+                whole device, with no arrival flourish competing with `rise`.
               */}
-              <span className="underline-drawn underline-sweep">{profile.headlineRule}</span>
+              <span className="underline-drawn">{profile.headlineRule}</span>
               {parts[1]}
             </>
           ) : (
@@ -66,14 +64,14 @@ export default function Hero({ id }: { id: string }) {
             href={profile.contact.github.url}
             target="_blank"
             rel="noreferrer"
-            className="-my-2 flex items-center gap-2 py-3 text-foreground-dim transition-colors hover:text-foreground"
+            className="-my-2 flex items-center gap-2 py-3.5 text-foreground-dim transition-colors hover:text-foreground"
           >
             <Github size={15} aria-hidden="true" />
             GitHub
           </a>
           <a
             href={`mailto:${profile.contact.email}`}
-            className="-my-2 flex items-center gap-2 py-3 text-foreground-dim transition-colors hover:text-foreground"
+            className="-my-2 flex items-center gap-2 py-3.5 text-foreground-dim transition-colors hover:text-foreground"
           >
             <Mail size={15} aria-hidden="true" />
             Email

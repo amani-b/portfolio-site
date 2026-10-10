@@ -62,20 +62,9 @@ export type Project = {
   links: { liveDemo: string; repo: string };
   /**
    * Screenshots, in the order they should be shown. The first is also the
-   * thumbnail on the rail card, so lead with the one that reads best small.
+   * teaser thumbnail, so lead with the one that reads best small.
    */
   images: ProjectImage[];
-  /**
-   * Whether this project appears in the rail on the projects page. The field is
-   * carried over from the old registry, where it drove the home page's flagship
-   * panel; the rail is the same idea with room for more than one.
-   *
-   * Be honest about what it currently does: there is ONE project in this
-   * registry, so `getSelectedProjects()` returns that one project and the
-   * "selected" distinction cannot be observed. It is scaffolding, and it is
-   * labelled as such rather than presented as a working filter.
-   */
-  featured: boolean;
   caseStudy: CaseStudySection[];
 };
 
@@ -112,10 +101,10 @@ export const projects: Project[] = [
       repo: "https://github.com/amani-b/CafeERP",
     },
     /*
-     * Ordered strongest-first, not 1..5: `images[0]` is the rail card's
-     * thumbnail and it is cropped to the top of the frame, so the sign-in
-     * screen — mostly empty cream — reads worst of the five at that size and
-     * sits last. The assistant and its action log are adjacent because they are
+     * Ordered strongest-first, not 1..5: `images[0]` is the teaser thumbnail
+     * and it is cropped to the top of the frame, so the sign-in screen —
+     * mostly empty cream — reads worst of the five at that size and sits
+     * last. The assistant and its action log are adjacent because they are
      * one story: it acts, and the log proves it did.
      */
     images: [
@@ -150,7 +139,6 @@ export const projects: Project[] = [
         height: 933,
       },
     ],
-    featured: true,
     caseStudy: [
       {
         title: "Problem",
@@ -251,7 +239,43 @@ export function getAllProjects(): Project[] {
   return [...projects].sort((a, b) => b.year.localeCompare(a.year));
 }
 
-/** The projects marked `featured` — what the rail on the projects page shows. */
-export function getSelectedProjects(): Project[] {
-  return getAllProjects().filter((project) => project.featured);
+const SLUG = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+const YEAR = /^\d{4}(–\d{4})?$/;
+
+function need(ok: unknown, message: string): void {
+  if (!ok) throw new Error(message);
+}
+
+/**
+ * Registry validation. Runs at build/dev-server start (see vite.config.ts),
+ * so a malformed entry fails loudly — in dev and in the production build —
+ * instead of rendering a half-entry. Adding a project is a data edit, and
+ * this is what keeps a data edit honest: every required field, the slug and
+ * year shapes, `https` links, at least one sized image with usable alt text,
+ * and at least one case-study section with at most one retrospective.
+ *
+ * It deliberately runs at build time rather than on the client: the registry
+ * is bundled statically, so re-checking it on every visitor's device would
+ * spend client bytes verifying data that cannot change at runtime.
+ */
+export function validateProjects(): void {
+  if (projects.length === 0) throw new Error('projects: empty registry');
+  const seen = new Set<string>();
+  for (const p of projects) {
+    const w = `"${p.slug || '?'}":`;
+    need(SLUG.test(p.slug), `${w} bad slug`);
+    need(!seen.has(p.slug), `${w} duplicate slug`);
+    seen.add(p.slug);
+    need([p.title, p.tagline, p.role, p.badge, p.summary].every((t) => t.trim()), `${w} empty field`);
+    need(YEAR.test(p.year), `${w} bad year`);
+    need(p.techStack.length > 0 && p.highlights.length > 0, `${w} empty list`);
+    need(p.links.liveDemo.startsWith('https://') && p.links.repo.startsWith('https://'), `${w} links must be https`);
+    need(p.images.length > 0, `${w} no images`);
+    for (const img of p.images) {
+      need(img.src.startsWith('/images/projects/') && img.alt.trim(), `${w} bad image ${img.src}`);
+      need(img.width > 0 && img.height > 0, `${w} image ${img.src} needs size`);
+    }
+    need(p.caseStudy.length > 0, `${w} no caseStudy`);
+    need(p.caseStudy.filter((s) => s.retrospective).length <= 1, `${w} two retrospectives`);
+  }
 }

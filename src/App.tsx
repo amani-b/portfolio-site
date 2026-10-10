@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { nav, profile } from './data/profile';
-import { Link, ROUTES, usePath } from './lib/router';
+import { getAllProjects } from './data/projects';
+import { Link, redirect, usePath, useProjectSlug } from './lib/router';
 import { cn } from './lib/utils';
 
 // Sections
 import Hero from './components/Hero';
 import Background from './components/Background';
 import Projects from './components/Projects';
-import ProjectsPage from './components/ProjectsPage';
+import ProjectDetail from './components/ProjectDetail';
 import About from './components/About';
 import BottomNav from './components/BottomNav';
 import ThemeToggle from './components/ThemeToggle';
@@ -16,23 +17,22 @@ import ThemeToggle from './components/ThemeToggle';
 const YEAR = new Date().getFullYear();
 
 /**
- * The shell: nav, the current route, and the colophon.
+ * The shell: nav, the current document, and the colophon.
  *
- * There are two routes. `/` is the scrollytelling page it always was; `/projects`
- * is the index, which the old site had as a route of its own and this app did
- * not. Routing is the hand-rolled `lib/router` — see the note there for why a
- * library was not worth its weight here.
+ * Home (`/`) is the scrollytelling page; each project has its own detail
+ * document at `/projects/<slug>`, reached from the Work browser. A dead URL —
+ * bare `/projects`, an unknown slug — renders home immediately while an effect
+ * silently swaps the URL, so there is never a blank flash and never a junk
+ * history entry.
  *
- * The desktop nav is a page-and-section nav: four of its five items scroll to a
- * section of the home page (carrying `/#id` so they work from either route) and
- * one, Index, is a page. The phone has no top nav at all — navigation lives in
- * the floating pill — so the theme switch rides in the pill there and on the nav
- * baseline here.
+ * The desktop nav is four section links carrying `/#id`, so the same nav
+ * works from a detail page: the router navigates home, then the hash effect
+ * below scrolls to the section the hash names.
  *
  * Two other things are load-bearing and easy to undo by accident:
  *
  *  · Links carry `aria-current`, so the active destination is exposed rather than
- *    implied by colour alone.
+ *    implied by colour alone. On a detail page the active item is Work.
  *  · The section observer uses a thin band across the middle of the viewport, not
  *    a fractional threshold. `threshold: 0.3` fired on every tall section that
  *    happened to be 30% visible and made the highlight jump.
@@ -42,19 +42,26 @@ const YEAR = new Date().getFullYear();
  */
 export default function App() {
   const path = usePath();
-  const isProjects = path === ROUTES.projects;
+  const slug = useProjectSlug();
+
+  const projects = getAllProjects();
+  const project = slug ? (projects.find((entry) => entry.slug === slug) ?? null) : null;
+
+  const isHome = path === '/';
+  const isDetail = project !== null;
+  /* Dead URLs render home at once; the effect below fixes the address bar. */
+  const showHome = isHome || !isDetail;
 
   const [activeSection, setActiveSection] = useState<string>('home');
   const [scrolled, setScrolled] = useState(false);
 
   /*
-   * The scroll spy only exists on the home page: on `/projects` there are no
-   * `section[id]` elements to observe, and the nav's active item is the route
-   * itself. Re-running on `isProjects` is what keeps the observer from holding a
-   * disconnected list of sections after a navigation.
+   * The scroll spy only exists on home: a detail page has no `section[id]`
+   * elements to observe. Re-running on `showHome` keeps the observer from
+   * holding a disconnected list after a navigation.
    */
   useEffect(() => {
-    if (isProjects) return;
+    if (!showHome) return;
     const sections = document.querySelectorAll('section[id]');
     if (sections.length === 0) return;
 
@@ -69,7 +76,7 @@ export default function App() {
 
     sections.forEach((section) => observer.observe(section));
     return () => observer.disconnect();
-  }, [isProjects]);
+  }, [showHome]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -78,10 +85,16 @@ export default function App() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  /* The head is written once in index.html, so the route has to retitle it. */
+  /* Dead URLs become `/` without a history entry — the back button skips them. */
   useEffect(() => {
-    document.title = isProjects ? `Index — ${profile.name}` : `${profile.name} — Portfolio`;
-  }, [isProjects]);
+    if (!isHome && !isDetail) redirect('/');
+  }, [isHome, isDetail]);
+
+  /* The head is written once in index.html, so the document has to retitle it. */
+  useEffect(() => {
+    document.title =
+      isDetail && project ? `${project.title} — ${profile.name}` : `${profile.name} — Portfolio`;
+  }, [isDetail, project]);
 
   /*
    * A route change lands at the top of the new document; a route change that
@@ -100,13 +113,12 @@ export default function App() {
     /*
      * `path` is a deliberate re-run trigger, not a value this effect reads: the
      * body only needs to run when the route changes, and the route is the
-     * dependency. Removing it would leave the scroll position from the previous
-     * document — landing halfway down the index after clicking Index.
+     * dependency.
      */
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [path]);
 
-  const activeKey = isProjects ? 'index' : activeSection;
+  const activeKey = showHome ? activeSection : 'work';
 
   return (
     <div className="bottom-nav-clearance relative min-h-screen">
@@ -133,7 +145,7 @@ export default function App() {
           >
             {profile.name}
           </Link>
-          <div className="flex items-center gap-6 font-mono text-xs tracking-widest uppercase">
+          <div className="flex items-center gap-6 font-mono text-xs tracking-[0.18em] uppercase">
             {nav.map((item) => (
               <Link
                 key={item.id}
@@ -154,16 +166,16 @@ export default function App() {
         </div>
       </nav>
 
-      {isProjects ? (
-        <main id="main" className="mx-auto max-w-7xl">
-          <ProjectsPage />
-        </main>
-      ) : (
+      {showHome ? (
         <main id="main" className="mx-auto max-w-7xl px-6 md:px-12 lg:px-24">
           <Hero id="home" />
           <Background id="background" />
           <Projects id="work" />
           <About id="about" />
+        </main>
+      ) : (
+        <main id="main" className="mx-auto max-w-7xl px-6 md:px-12 lg:px-24">
+          {project ? <ProjectDetail project={project} /> : null}
         </main>
       )}
 
@@ -175,12 +187,6 @@ export default function App() {
             © {YEAR} {profile.name}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 font-mono text-xs">
-            <Link
-              to="/projects"
-              className="group -mx-3 min-w-11 px-3 py-3.5 text-center text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <span className="link-underline">Index</span>
-            </Link>
             <a
               href={profile.contact.github.url}
               target="_blank"

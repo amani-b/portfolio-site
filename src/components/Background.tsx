@@ -36,7 +36,7 @@ export default function Background({ id }: { id: string }) {
     <section id={id} className="border-t border-line py-24 md:py-32">
       <div className="grid gap-12 md:grid-cols-[1fr_2fr] md:gap-24">
         <div>
-          <h2 className="sticky top-32 font-mono text-sm tracking-widest text-muted-foreground uppercase">
+          <h2 className="sticky top-32 font-mono text-sm tracking-[0.18em] text-muted-foreground uppercase">
             Background
           </h2>
         </div>
@@ -45,7 +45,6 @@ export default function Background({ id }: { id: string }) {
           {rows.map((row, index) => (
             <Reveal
               key={row.label}
-              delay={index * 100}
               className={index === 0 ? '' : 'border-t border-line'}
             >
               <div

@@ -1,4 +1,4 @@
-import { Code, GraduationCap, Home, List, User } from 'lucide-react';
+import { Code, GraduationCap, Home, User } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { nav } from '../data/profile';
@@ -7,17 +7,16 @@ import { cn } from '../lib/utils';
 import ThemeToggle from './ThemeToggle';
 
 interface BottomNavProps {
-  /** The section in view on the home page, or `"index"` on the projects page. */
+  /** The section in view on the home page, or `"work"` on a detail page. */
   activeKey: string;
 }
 
 /**
  * The phone's navigation — the floating pill, unchanged in composition.
  *
- * It now carries five destinations and the theme switch, which is the most that
- * will fit: six 44px controls plus gaps is wider than a 320px viewport, and 44px
- * is not negotiable. The spacing therefore tightens below 360px and relaxes
- * above it, rather than the targets shrinking. See the note in the README.
+ * It carries four destinations and the theme switch. The spacing still
+ * tightens below 360px and relaxes above it, rather than the targets
+ * shrinking — 44px is not negotiable. See the note in the README.
  *
  * Other changes:
  *  · `aria-current` exposes the active destination to assistive tech instead of
@@ -34,7 +33,6 @@ const ICONS: Record<string, LucideIcon> = {
   home: Home,
   background: GraduationCap,
   work: Code,
-  index: List,
   about: User,
 };
 
@@ -84,11 +82,19 @@ export default function BottomNav({ activeKey }: BottomNavProps) {
   return (
     <div className="bottom-nav-offset pointer-events-none fixed left-0 right-0 z-50 flex justify-center px-3 min-[360px]:px-4 md:hidden">
       <div className="pointer-events-auto relative flex items-center rounded-full border border-line bg-surface/80 p-1 shadow-2xl backdrop-blur-xl min-[360px]:p-2">
-        <nav ref={navRef} aria-label="Primary" className="flex items-center">
+        <nav ref={navRef} aria-label="Primary" className="relative flex items-center">
           {indicator ? (
+            /*
+             * Full-bleed behind the active tab: `top-0 bottom-0` plus the
+             * measured width makes the indicator the exact 44px circle the tab
+             * is, not a smaller pill floating inside it. `nav` above must stay
+             * `relative` — it is this span's positioning context, and the
+             * measured offset is nav-relative. Without it the pill positions
+             * against the outer shell and lands one shell-padding left.
+             */
             <span
               aria-hidden="true"
-              className="nav-indicator pointer-events-none absolute top-1 bottom-1 left-0 rounded-full bg-wash-strong min-[360px]:top-2 min-[360px]:bottom-2"
+              className="nav-indicator pointer-events-none absolute top-0 bottom-0 left-0 rounded-full bg-wash-strong"
               style={{ transform: `translateX(${indicator.x}px)`, width: indicator.width }}
             />
           ) : null}

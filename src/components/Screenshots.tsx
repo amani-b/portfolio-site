@@ -122,9 +122,9 @@ export default function Screenshots({ project }: { project: Project }) {
   return (
     <div className="mt-10">
       <div className="flex items-baseline justify-between gap-4 border-t border-line pt-4">
-        <h4 className="font-mono text-xs tracking-[0.18em] text-muted-foreground uppercase">
+        <h2 className="font-mono text-xs tracking-[0.18em] text-muted-foreground uppercase">
           Screenshots
-        </h4>
+        </h2>
         <p className="font-mono text-xs text-foreground-dim">
           {String(count).padStart(2, "0")} figures
         </p>
@@ -229,9 +229,16 @@ export default function Screenshots({ project }: { project: Project }) {
                 <img
                   src={images[open].src}
                   alt={images[open].alt}
+                  width={images[open].width}
+                  height={images[open].height}
+                  decoding="async"
                   className="max-h-full max-w-full border border-scrim-line bg-scrim"
                 />
               </div>
+
+              <p className="mx-auto max-w-3xl px-4 pt-1 pb-3 text-center font-mono text-xs leading-relaxed text-scrim-ink-soft line-clamp-2">
+                {images[open].alt}
+              </p>
 
               <p className="border-t border-scrim-line px-4 py-3 text-center font-mono text-xs text-scrim-ink-soft">
                 {/* Keyboard hints only where there is a keyboard. The previous

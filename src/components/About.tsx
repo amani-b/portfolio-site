@@ -1,5 +1,7 @@
 import { Github, Mail } from 'lucide-react';
 import { profile } from '../data/profile';
+import { getAllProjects } from '../data/projects';
+import { Link } from '../lib/router';
 import CopyEmailButton from './CopyEmailButton';
 import Reveal from './Reveal';
 
@@ -16,16 +18,20 @@ export default function About({ id }: { id: string }) {
   /*
    * The old site linked the phrase "biggest project so far" to the case-study
    * route. Splitting the verbatim paragraph around that phrase keeps the copy
-   * untouched and gives the link a home on this single-page version.
+   * untouched; the link lands on the newest project's detail document, which
+   * is where the full case study lives. No slug is written here, so the link
+   * can never point at a project that no longer exists.
    */
   const lead = about.paragraphs[0].split(about.projectLinkText);
   const hasLink = lead.length === 2;
+  const newest = getAllProjects()[0];
+  const projectHref = newest ? `/projects/${newest.slug}` : '/#work';
 
   return (
     <section id={id} className="border-t border-line py-24 md:py-32">
       <div className="grid gap-12 md:grid-cols-[1fr_2fr] md:gap-24">
         <div>
-          <h2 className="sticky top-32 font-mono text-sm tracking-widest text-muted-foreground uppercase">
+          <h2 className="sticky top-32 font-mono text-sm tracking-[0.18em] text-muted-foreground uppercase">
             About &amp; Contact
           </h2>
         </div>
@@ -41,12 +47,12 @@ export default function About({ id }: { id: string }) {
                 {hasLink ? (
                   <>
                     {lead[0]}
-                    <a
-                      href="#work"
+                    <Link
+                      to={projectHref}
                       className="font-medium text-foreground"
                     >
                       <span className="link-underline">{about.projectLinkText}</span>
-                    </a>
+                    </Link>
                     {lead[1]}
                   </>
                 ) : (
@@ -58,7 +64,7 @@ export default function About({ id }: { id: string }) {
             </div>
           </Reveal>
 
-          <Reveal delay={200} className="mt-16 border-t border-line pt-8">
+          <Reveal className="mt-16 border-t border-line pt-8">
             <h4 className="font-mono text-xs tracking-[0.18em] text-muted-foreground uppercase">
               Contact
             </h4>

@@ -1,65 +1,101 @@
 import { useState } from 'react';
-import { ArrowRight, ExternalLink, Github, Plus } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ExternalLink, Github } from 'lucide-react';
 import { getAllProjects, type Project } from '../data/projects';
-import { profile } from '../data/profile';
 import { Link } from '../lib/router';
-import Screenshots from './Screenshots';
-import RichText from './RichText';
-import Reveal from './Reveal';
+import { cn } from '../lib/utils';
+import ProjectsTable from './ProjectsTable';
+
+type View = 'featured' | 'index';
 
 /**
- * The work section, on the home page.
+ * The work section, on the home page — the project browser.
  *
- * The old portfolio's registry holds exactly one project, and its case study is
- * the most valuable thing on the site — the About copy explicitly points at it.
- * Rather than drop that prose or rebuild the old multi-page route, the entry
- * keeps this app's single-page composition and folds the case study into an
- * accessible disclosure: the entry stays scannable, and the full write-up is one
- * click away.
+ * Two views, one registry. Featured shows one teaser at a time with steppers
+ * on both sides; Index is a three-column table of every project. Both link to
+ * the project's detail document — the full case study lives there exactly
+ * once, never here.
  *
- * The full catalogue now also has its own page (`/projects`), so this section
- * carries a link to it. The two are not duplicates of each other: this is the
- * short form, that is the index — which is how the old site split its home page
- * and its `/projects` route.
+ * The choice is session state, defaulting to Featured. It is not persisted:
+ * a stored preference for a two-option view is machinery without a reader
+ * benefit, unlike the theme, which the operating system itself reports.
  */
 export default function Projects({ id }: { id: string }) {
   const projects = getAllProjects();
+  const [view, setView] = useState<View>('featured');
+  const [index, setIndex] = useState(0);
+
+  const current = projects[Math.min(index, Math.max(projects.length - 1, 0))];
+  const traversable = projects.length > 1;
 
   return (
     <section id={id} className="border-t border-line py-24 md:py-32">
       <div className="grid gap-12 md:grid-cols-[1fr_2fr] md:gap-24">
         <div>
-          <h2 className="sticky top-32 font-mono text-sm tracking-widest text-muted-foreground uppercase">
+          <h2 className="sticky top-32 font-mono text-sm tracking-[0.18em] text-muted-foreground uppercase">
             Work
           </h2>
         </div>
 
-        <div className="flex flex-col gap-24">
-          <div className="max-w-xl">
-            <p className="text-lg leading-relaxed font-light text-muted-foreground">
-              {profile.indexIntro}
-            </p>
-            <Link
-              to="/projects"
-              /*
-               * The hit area is grown with padding and then cancelled with a
-               * negative margin, so the 24px gap above it is unchanged while the
-               * control itself is 44px tall rather than the 16px of its text.
-               */
-              className="group mt-6 -my-3.5 inline-flex items-center gap-2 py-3.5 font-mono text-xs tracking-[0.18em] uppercase"
-            >
-              <span className="link-underline">See the full index</span>
-              <ArrowRight
-                size={13}
-                aria-hidden="true"
-                className="text-accent transition-transform duration-200 group-hover:translate-x-1"
-              />
-            </Link>
+        <div>
+          <div
+            role="group"
+            aria-label="Work view"
+            className="inline-flex rounded-full border border-line bg-surface p-1"
+          >
+            {(['featured', 'index'] as const).map((option) => (
+              <button
+                key={option}
+                type="button"
+                aria-pressed={view === option}
+                onClick={() => setView(option)}
+                className={cn(
+                  'min-h-11 shrink-0 cursor-pointer rounded-full px-5 font-mono text-xs tracking-[0.18em] uppercase transition-colors',
+                  view === option
+                    ? 'bg-wash-strong text-foreground'
+                    : 'text-foreground-dim hover:text-foreground',
+                )}
+              >
+                {option === 'featured' ? 'Featured' : 'Index'}
+              </button>
+            ))}
           </div>
 
-          {projects.map((project) => (
-            <ProjectEntry key={project.slug} project={project} />
-          ))}
+          <div className="mt-12">
+            {view === 'featured' && current ? (
+              <div className="carousel-grid">
+                <article key={current.slug} className="swap [grid-area:card]">
+                  <TeaserCard project={current} />
+                </article>
+                {traversable ? (
+                  <>
+                    <StepButton
+                      direction={-1}
+                      label="Previous project"
+                      disabled={index <= 0}
+                      onStep={() => setIndex((value) => Math.max(value - 1, 0))}
+                      className="[grid-area:prev] justify-self-start"
+                    />
+                    <p className="justify-self-center font-mono text-xs text-foreground-dim tabular-nums [grid-area:counter]">
+                      <span className="sr-only">Showing project </span>
+                      <span aria-live="polite">
+                        {String(index + 1).padStart(2, '0')} /{' '}
+                        {String(projects.length).padStart(2, '0')}
+                      </span>
+                    </p>
+                    <StepButton
+                      direction={1}
+                      label="Next project"
+                      disabled={index >= projects.length - 1}
+                      onStep={() => setIndex((value) => Math.min(value + 1, projects.length - 1))}
+                      className="[grid-area:next] justify-self-end"
+                    />
+                  </>
+                ) : null}
+              </div>
+            ) : (
+              <ProjectsTable projects={projects} />
+            )}
+          </div>
         </div>
       </div>
     </section>
@@ -67,199 +103,107 @@ export default function Projects({ id }: { id: string }) {
 }
 
 /**
- * One project, with its case study behind a disclosure.
- *
- * Exported because the projects page renders the same entries — one component,
- * one source of prose, so the two pages cannot drift apart.
- *
- * `defaultOpen` is what makes the index page an index: on `/projects` the case
- * studies *are* the content, so they arrive open, and the table's links land on
- * a write-up rather than on a collapsed bar the reader then has to click.
+ * One project, summarized: badge, title, tagline, the first three stack
+ * items, one thumbnail, the two outbound links, and the way in — a same-tab
+ * link to the detail document. No case-study prose here; it lives there.
  */
-export function ProjectEntry({
-  project,
-  defaultOpen = false,
-}: {
-  project: Project;
-  defaultOpen?: boolean;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
-  const panelId = `case-study-${project.slug}`;
-
+function TeaserCard({ project }: { project: Project }) {
   return (
-    /*
-     * The anchor target is this wrapper, deliberately OUTSIDE the reveal.
-     *
-     * A scroll entrance starts at `translate: 0 16px` and settles to 0. If the
-     * id sat on the animating element, the browser would scroll to where the
-     * element *currently* is — 16px low — and then the animation would lift it
-     * out from under the fixed nav, landing the entry's badge row behind it.
-     * On a plain wrapper the box never moves, so the target lands exactly where
-     * `scroll-padding-top` says it should.
-     */
-    <div id={`entry-${project.slug}`}>
-      <Reveal>
-        <div className="flex flex-wrap items-center gap-4">
-          <span className="rounded-full border border-line px-3 py-1 font-mono text-xs text-muted-foreground">
-            {project.badge}
-          </span>
-          <span className="ml-auto font-mono text-xs text-muted-foreground">{project.year}</span>
-        </div>
+    <div>
+      <div className="flex flex-wrap items-center gap-4">
+        <span className="rounded-full border border-line px-3 py-1 font-mono text-xs text-muted-foreground">
+          {project.badge}
+        </span>
+        <span className="ml-auto font-mono text-xs text-muted-foreground">{project.year}</span>
+      </div>
 
-        {/*
-          No arrow after the title. There used to be an `ArrowUpRight` here that
-          nudged on `group-hover/entry` — an affordance for a navigation that does
-          not exist, since the title is not a link and the entry's real controls
-          are the two buttons below. On the old multi-page site the whole entry was
-          a link to the case-study route; on this version it is not, so the arrow
-          was telling the reader something untrue.
-        */}
-        <h3 className="mt-6 text-3xl font-medium text-foreground md:text-4xl">{project.title}</h3>
+      <h3 className="mt-6 text-3xl font-medium text-foreground md:text-4xl">{project.title}</h3>
 
-        <p className="mt-4 max-w-2xl text-lg leading-relaxed font-light text-muted-foreground">
-          {project.tagline}
-        </p>
+      <p className="mt-4 max-w-2xl text-lg leading-relaxed font-light text-muted-foreground">
+        {project.tagline}
+      </p>
 
-        <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2 font-mono text-sm text-foreground-dim">
-          {project.techStack.map((tech) => (
-            <li key={tech}>{tech}</li>
-          ))}
-        </ul>
+      <p className="mt-6 font-mono text-sm text-foreground-dim">
+        {project.techStack.slice(0, 3).join(' · ')}
+      </p>
 
-        {/* The old entries linked to "#" — dead controls. These are the real URLs. */}
-        <div className="mt-8 flex flex-wrap gap-3 font-mono text-sm">
-          <a
-            href={project.links.liveDemo}
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center gap-2 rounded-full border border-line-strong bg-wash px-5 py-3 transition-colors hover:bg-wash-strong"
-          >
-            Live demo
-            <ExternalLink size={14} aria-hidden="true" />
-          </a>
-          <a
-            href={project.links.repo}
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center gap-2 rounded-full border border-line px-5 py-3 text-foreground-dim transition-colors hover:border-line-strong hover:text-foreground"
-          >
-            Repository
-            <Github size={14} aria-hidden="true" />
-          </a>
-        </div>
-
-        <Screenshots project={project} />
-
-        <button
-          type="button"
-          onClick={() => setOpen((value) => !value)}
-          aria-expanded={open}
-          aria-controls={panelId}
-          /*
-           * The bar already inherits `--color-foreground` from <html>, so the
-           * `hover:text-foreground` that used to be here was a no-op: the label
-           * was already that colour. A wash is the hover state that actually
-           * shows on a full-width ruled bar.
-           */
-          className="mt-10 flex w-full items-center justify-between gap-4 border-y border-line py-4 font-mono text-xs tracking-[0.18em] uppercase transition-colors hover:bg-wash"
+      {project.images[0] ? (
+        <Link
+          to={`/projects/${project.slug}`}
+          className="group mt-8 block border border-line transition-colors hover:border-line-strong"
         >
-          <span>{open ? 'Hide the case study' : 'Read the case study'}</span>
-          <Plus size={16} aria-hidden="true" className="disclosure-icon shrink-0 text-accent" />
-        </button>
+          <img
+            src={project.images[0].src}
+            alt={project.images[0].alt}
+            width={project.images[0].width}
+            height={project.images[0].height}
+            loading="lazy"
+            decoding="async"
+            className="aspect-[2/1] w-full object-cover object-top"
+          />
+        </Link>
+      ) : null}
 
-        {/*
-          Always mounted so `aria-controls` always resolves; the collapse is a
-          `grid-template-rows: 0fr → 1fr` transition, so the panel expands to its
-          natural height without measuring it in JavaScript. `inert` keeps the
-          collapsed prose out of the tab order and the accessibility tree.
-        */}
-        <div id={panelId} className="disclosure" data-open={open} inert={!open}>
-          <div>
-            <div className="pt-8">
-              <p className="max-w-2xl text-lg leading-relaxed text-muted-foreground">
-                {project.summary}
-              </p>
+      <div className="mt-8 flex flex-wrap gap-3 font-mono text-sm">
+        <a
+          href={project.links.liveDemo}
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-center gap-2 rounded-full border border-line-strong bg-wash px-5 py-3 transition-colors hover:bg-wash-strong"
+        >
+          Live demo
+          <ExternalLink size={14} aria-hidden="true" />
+        </a>
+        <a
+          href={project.links.repo}
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-center gap-2 rounded-full border border-line px-5 py-3 text-foreground-dim transition-colors hover:border-line-strong hover:text-foreground"
+        >
+          Repository
+          <Github size={14} aria-hidden="true" />
+        </a>
+      </div>
 
-              <dl className="mt-10 grid gap-8 border-t border-line pt-8 sm:grid-cols-2">
-                <div>
-                  <dt className="font-mono text-xs tracking-[0.18em] text-muted-foreground uppercase">
-                    Role
-                  </dt>
-                  <dd className="mt-2 leading-relaxed">{project.role}</dd>
-                </div>
-                <div>
-                  <dt className="font-mono text-xs tracking-[0.18em] text-muted-foreground uppercase">
-                    Key facts
-                  </dt>
-                  <dd>
-                    <ul className="mt-2 space-y-3 text-[15px] leading-relaxed text-muted-foreground">
-                      {project.highlights.map((highlight) => (
-                        <li key={highlight} className="flex gap-2.5">
-                          <span aria-hidden="true" className="text-accent">
-                            —
-                          </span>
-                          <span>{highlight}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </dd>
-                </div>
-              </dl>
-
-              <div className="mt-12 space-y-12">
-                {project.caseStudy.map((section) => (
-                  <section
-                    key={section.title}
-                    className={
-                      section.retrospective
-                        ? 'border-l-2 border-accent pl-5 md:pl-6'
-                        : 'border-t border-line pt-8'
-                    }
-                  >
-                    <h4
-                      className={`font-mono text-xs tracking-[0.18em] uppercase ${
-                        section.retrospective ? 'text-accent' : 'text-muted-foreground'
-                      }`}
-                    >
-                      {section.title}
-                    </h4>
-                    <div className="mt-4 max-w-2xl space-y-5 leading-relaxed text-muted-foreground">
-                      {section.blocks.map((block, blockIndex) =>
-                        block.kind === 'p' ? (
-                          <p key={blockIndex}>
-                            <RichText text={block.text} />
-                          </p>
-                        ) : (
-                          <ul key={blockIndex} className="space-y-4">
-                            {block.items.map((item) => (
-                              <li key={item.lead ?? item.text} className="flex gap-2.5">
-                                <span aria-hidden="true" className="text-accent">
-                                  —
-                                </span>
-                                <span>
-                                  {item.lead ? (
-                                    <>
-                                      <strong className="font-medium text-foreground">
-                                        <RichText text={item.lead} />
-                                      </strong>{' '}
-                                      —{' '}
-                                    </>
-                                  ) : null}
-                                  <RichText text={item.text} />
-                                </span>
-                              </li>
-                            ))}
-                          </ul>
-                        ),
-                      )}
-                    </div>
-                  </section>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </Reveal>
+      <Link
+        to={`/projects/${project.slug}`}
+        className="group mt-6 -my-3.5 inline-flex items-center gap-2 py-3.5 font-mono text-xs tracking-[0.18em] uppercase"
+      >
+        <span className="link-underline">Read the case study</span>
+        <ArrowRight
+          size={13}
+          aria-hidden="true"
+          className="text-accent transition-transform duration-200 group-hover:translate-x-1"
+        />
+      </Link>
     </div>
+  );
+}
+
+/** One carousel stepper: a 44px circle with a chevron, disabled at the ends. */
+function StepButton({
+  direction,
+  label,
+  disabled,
+  onStep,
+  className,
+}: {
+  direction: -1 | 1;
+  label: string;
+  disabled: boolean;
+  onStep: () => void;
+  className?: string;
+}) {
+  const Icon = direction === -1 ? ArrowLeft : ArrowRight;
+  return (
+    <button
+      type="button"
+      onClick={onStep}
+      disabled={disabled}
+      aria-label={label}
+      className={`flex h-11 w-11 items-center justify-center rounded-full border border-line text-foreground-dim transition-colors hover:border-line-strong hover:text-foreground disabled:cursor-default disabled:opacity-40 ${className ?? ''}`}
+    >
+      <Icon size={16} aria-hidden="true" />
+    </button>
   );
 }
