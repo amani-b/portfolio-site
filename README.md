@@ -3,6 +3,8 @@
 Portfolio of **Amanuel Berhanu** — a React app built with Vite: one home page
 with a two-view work browser, plus one detail document per project.
 
+**Deployed [here](https://this-is-amani-b.vercel.app)**
+
 ## Run it
 
 ```bash
