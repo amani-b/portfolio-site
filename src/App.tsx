@@ -181,21 +181,36 @@ export default function App() {
 
       <BottomNav activeKey={activeKey} />
 
-      <footer className="mt-16 border-t border-line px-6 py-8 md:px-12 lg:px-24">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 md:flex-row">
-          <p className="font-mono text-xs text-muted-foreground">
-            © {YEAR} {profile.name}
+      <footer className="mt-16 border-t border-line px-6 py-16 md:px-12 md:py-20 lg:px-24">
+        <div className="mx-auto max-w-7xl">
+          <p className="font-mono text-xs tracking-[0.18em] text-muted-foreground uppercase">
+            04 — Next step
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 font-mono text-xs">
-            <a
-              href={profile.contact.github.url}
-              target="_blank"
-              rel="noreferrer"
-              className="py-3.5 text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {profile.contact.github.label}
-            </a>
-            <span className="text-muted-foreground">{profile.colophon}</span>
+          <a
+            href={`mailto:${profile.contact.email}`}
+            className="group mt-4 block max-w-3xl text-4xl leading-[1.05] font-medium tracking-tight text-balance text-foreground md:text-6xl"
+          >
+            Let&apos;s build something that{' '}
+            <span className="link-underline">ships to production</span>
+            <span aria-hidden="true" className="text-accent">
+              .
+            </span>
+          </a>
+          <div className="mt-10 flex flex-col items-start justify-between gap-4 border-t border-line pt-8 md:flex-row md:items-center">
+            <p className="font-mono text-xs text-muted-foreground">
+              © {YEAR} {profile.name}
+            </p>
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-xs">
+              <a
+                href={profile.contact.github.url}
+                target="_blank"
+                rel="noreferrer"
+                className="py-3.5 text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {profile.contact.github.label}
+              </a>
+              <span className="text-muted-foreground">{profile.colophon}</span>
+            </div>
           </div>
         </div>
       </footer>

@@ -76,9 +76,17 @@ crawler receives); only `document.title` is rewritten per route.
 
 ## Design notes
 
+- Concept: a production notebook. Sections are numbered 01–04 with mono
+  numerals, the hero carries an availability pill and a stat strip computed
+  from the project registry (projects, figures, stack size — never hard-coded),
+  the work section closes with a tech-stack marquee, and the footer is a
+  "Let's build something that ships to production" mailto CTA. No motion or
+  content library — all motion is CSS in `src/index.css`, gated on
+  `prefers-reduced-motion`.
 - Two themes, one token set (`:root` / `:root.dark`, Tailwind `@theme inline`,
   `color-mix` hairlines). Pre-paint inline script in `index.html` applies the
-  stored/system theme; CSS `prefers-color-scheme` covers no-JS.
+  stored/system theme; CSS `prefers-color-scheme` covers no-JS. Person JSON-LD
+  lives in `index.html` next to the other crawler-facing metadata.
 - One accent device: `.link-underline` draws on hover/focus, `.underline-drawn`
   holds the headline rule at rest. No animation library — all motion is CSS in
   `src/index.css`, gated on `prefers-reduced-motion`. Card steps use a 0.22 s
@@ -86,7 +94,8 @@ crawler receives); only `document.title` is rewritten per route.
   and up, stacked with a control row below on phones).
 - `md` (768px) is the phone/desktop boundary: the top nav is `md:`-only, below
   it navigation lives in the floating bottom pill (four destinations + theme
-  switch; audited at 320px).
+  switch; audited at 320px). Section headers are `md:sticky` only — a stuck
+  header on a single-column phone layout floats over its own section's text.
 - `cn` is `clsx`, not a merge — write classes so they don't conflict.
 
 ## Deployment

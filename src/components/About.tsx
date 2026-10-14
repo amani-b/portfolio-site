@@ -31,7 +31,10 @@ export default function About({ id }: { id: string }) {
     <section id={id} className="border-t border-line py-24 md:py-32">
       <div className="grid gap-12 md:grid-cols-[1fr_2fr] md:gap-24">
         <div>
-          <h2 className="sticky top-32 font-mono text-sm tracking-[0.18em] text-muted-foreground uppercase">
+          <h2 className="font-mono text-sm tracking-[0.18em] text-muted-foreground uppercase md:sticky md:top-32">
+            <span aria-hidden="true" className="ghost-numeral mr-3 text-2xl font-medium">
+              03
+            </span>
             About &amp; Contact
           </h2>
         </div>
@@ -62,6 +65,34 @@ export default function About({ id }: { id: string }) {
               <p>{about.paragraphs[1]}</p>
               <p>{about.paragraphs[2]}</p>
             </div>
+          </Reveal>
+
+          {/*
+            Principles, distilled from the decisions the case study actually
+            records (versioned schema, UTC contract, confirmation policy,
+            opt-in inventory) — a summary of demonstrated practice, not new
+            claims. Each `lead` names the habit; each `text` the receipt.
+          */}
+          <Reveal className="mt-16 border-t border-line pt-8">
+            <h4 className="font-mono text-xs tracking-[0.18em] text-muted-foreground uppercase">
+              How I work
+            </h4>
+            <ul className="mt-6 grid gap-3 sm:grid-cols-2">
+              {[
+                { lead: 'Version everything', text: 'Flyway migrations, never silent drift.' },
+                { lead: 'UTC in, local out', text: 'One timezone contract, one display service.' },
+                { lead: 'Autonomy with guards', text: 'AI acts only behind confirm + audit log.' },
+                { lead: 'Opt-in complexity', text: 'Features that stay out of the way until asked.' },
+              ].map((item) => (
+                <li
+                  key={item.lead}
+                  className="rounded-xl border border-line bg-wash px-4 py-3.5 transition-colors hover:border-line-strong"
+                >
+                  <p className="font-medium text-foreground">{item.lead}</p>
+                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{item.text}</p>
+                </li>
+              ))}
+            </ul>
           </Reveal>
 
           <Reveal className="mt-16 border-t border-line pt-8">

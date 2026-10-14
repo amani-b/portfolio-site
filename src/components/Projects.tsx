@@ -26,14 +26,23 @@ export default function Projects({ id }: { id: string }) {
 
   const current = projects[Math.min(index, Math.max(projects.length - 1, 0))];
   const traversable = projects.length > 1;
+  const stackTicker = [...new Set(projects.flatMap((p) => p.techStack))];
 
   return (
-    <section id={id} className="border-t border-line py-24 md:py-32">
+    <section id={id} className="relative border-t border-line py-24 md:py-32">
       <div className="grid gap-12 md:grid-cols-[1fr_2fr] md:gap-24">
         <div>
-          <h2 className="sticky top-32 font-mono text-sm tracking-[0.18em] text-muted-foreground uppercase">
+          <h2 className="font-mono text-sm tracking-[0.18em] text-muted-foreground uppercase md:sticky md:top-32">
+            <span aria-hidden="true" className="ghost-numeral mr-3 text-2xl font-medium">
+              02
+            </span>
             Work
           </h2>
+          <p className="mt-4 font-mono text-xs leading-relaxed text-foreground-dim md:sticky md:top-44">
+            {String(projects.length).padStart(2, '0')}{' '}
+            {projects.length === 1 ? 'project' : 'projects'} · each with an
+            honest case study
+          </p>
         </div>
 
         <div>
@@ -64,7 +73,7 @@ export default function Projects({ id }: { id: string }) {
             {view === 'featured' && current ? (
               <div className="carousel-grid">
                 <article key={current.slug} className="swap [grid-area:card]">
-                  <TeaserCard project={current} />
+                  <TeaserCard project={current} position={index} />
                 </article>
                 {traversable ? (
                   <>
@@ -98,39 +107,69 @@ export default function Projects({ id }: { id: string }) {
           </div>
         </div>
       </div>
+
+      {stackTicker.length > 0 ? (
+        <div
+          aria-hidden="true"
+          className="marquee-mask mt-20 overflow-hidden border-y border-line py-4"
+        >
+          <div className="marquee-track flex w-max items-center gap-8 font-mono text-xs tracking-[0.18em] text-foreground-dim uppercase">
+            {[...stackTicker, ...stackTicker].map((tech, i) => (
+              <span key={`${tech}-${i}`} className="flex items-center gap-8">
+                <span>{tech}</span>
+                <span className="text-accent">·</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
 
 /**
- * One project, summarized: badge, title, tagline, the first three stack
- * items, one thumbnail, the two outbound links, and the way in — a same-tab
- * link to the detail document. No case-study prose here; it lives there.
+ * One project, summarized: badge, title, tagline, full stack as chips, one
+ * framed thumbnail with a hover overlay that names the destination, the two
+ * outbound links, and the way in — a same-tab link to the detail document.
+ * No case-study prose here; it lives there.
  */
-function TeaserCard({ project }: { project: Project }) {
+function TeaserCard({ project, position }: { project: Project; position: number }) {
   return (
     <div>
       <div className="flex flex-wrap items-center gap-4">
+        <span className="font-mono text-sm text-accent tabular-nums">
+          {String(position + 1).padStart(2, '0')}
+        </span>
         <span className="rounded-full border border-line px-3 py-1 font-mono text-xs text-muted-foreground">
           {project.badge}
         </span>
         <span className="ml-auto font-mono text-xs text-muted-foreground">{project.year}</span>
       </div>
 
-      <h3 className="mt-6 text-3xl font-medium text-foreground md:text-4xl">{project.title}</h3>
+      <h3 className="mt-6 text-3xl font-medium tracking-tight text-foreground md:text-5xl">
+        {project.title}
+      </h3>
 
       <p className="mt-4 max-w-2xl text-lg leading-relaxed font-light text-muted-foreground">
         {project.tagline}
       </p>
 
-      <p className="mt-6 font-mono text-sm text-foreground-dim">
-        {project.techStack.slice(0, 3).join(' · ')}
-      </p>
+      <ul className="mt-6 flex flex-wrap gap-2 font-mono text-xs text-foreground-dim">
+        {project.techStack.map((tech) => (
+          <li
+            key={tech}
+            className="rounded-full border border-line bg-wash px-3 py-1.5 transition-colors hover:border-line-strong hover:text-foreground"
+          >
+            {tech}
+          </li>
+        ))}
+      </ul>
 
       {project.images[0] ? (
         <Link
           to={`/projects/${project.slug}`}
-          className="group mt-8 block border border-line transition-colors hover:border-line-strong"
+          aria-label={`${project.title} — open the full case study`}
+          className="figure-frame group mt-8 block border border-line bg-muted transition-colors hover:border-line-strong"
         >
           <img
             src={project.images[0].src}
@@ -139,8 +178,12 @@ function TeaserCard({ project }: { project: Project }) {
             height={project.images[0].height}
             loading="lazy"
             decoding="async"
-            className="aspect-[2/1] w-full object-cover object-top"
+            className="aspect-[2/1] w-full object-cover object-top transition-transform duration-500 ease-out group-hover:scale-[1.015]"
           />
+          <span className="pointer-events-none absolute right-4 bottom-4 inline-flex translate-y-2 items-center gap-2 rounded-full bg-scrim/90 px-4 py-2 font-mono text-xs text-scrim-ink opacity-0 backdrop-blur transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:translate-y-0 group-focus-visible:opacity-100">
+            Open case study
+            <ArrowRight size={13} aria-hidden="true" />
+          </span>
         </Link>
       ) : null}
 
