@@ -22,7 +22,6 @@ export default function Hero({ id }: { id: string }) {
     { value: String(projects.length).padStart(2, '0'), label: 'Shipped to production' },
     { value: String(figures).padStart(2, '0'), label: 'Documented figures' },
     { value: String(stack).padStart(2, '0'), label: 'Technologies in stack' },
-    { value: 'EN·AM', label: 'Assistant speaks' },
   ];
 
   return (
@@ -91,9 +90,20 @@ export default function Hero({ id }: { id: string }) {
           </a>
         </div>
 
-        <dl className="mt-14 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-4">
-          {stats.map((stat) => (
-            <div key={stat.label} className="flex flex-col bg-background px-5 py-4">
+        {/*
+          Three stats: two-up on phones with the third spanning the full row,
+          three-up from `sm`. The bilingual-assistant fact lives where it
+          belongs — the work tagline and the case study — not as a cryptic
+          language code in a stat cell.
+        */}
+        <dl className="mt-14 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-3">
+          {stats.map((stat, index) => (
+            <div
+              key={stat.label}
+              className={`flex flex-col bg-background px-5 py-4 ${
+                index === stats.length - 1 ? 'col-span-2 sm:col-span-1' : ''
+              }`}
+            >
               <dt className="order-2 mt-1 font-mono text-[10px] leading-relaxed tracking-[0.14em] text-muted-foreground uppercase sm:text-[11px]">
                 {stat.label}
               </dt>

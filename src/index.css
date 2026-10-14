@@ -281,19 +281,10 @@
     );
   }
 
-  /* Pulsing availability dot. Motion-gated with everything else. */
-  @keyframes ping-soft {
-    0% {
-      transform: scale(1);
-      opacity: 0.9;
-    }
-    80%,
-    100% {
-      transform: scale(2.6);
-      opacity: 0;
-    }
-  }
-
+  /* Pulsing availability dot. Motion-gated with everything else. The
+     keyframes live at top level, not in this layer: keyframes declared
+     inside a cascade layer have a history of not resolving on older
+     WebKit, which freezes the animation on its first frame. */
   @media (prefers-reduced-motion: no-preference) {
     .ping-dot {
       animation: ping-soft 2.2s cubic-bezier(0, 0, 0.2, 1) infinite;
@@ -339,16 +330,12 @@
     opacity: 1;
   }
 
-  /* Marquee strip: tech stack ticker between hero and background. */
-  @keyframes marquee {
-    from {
-      transform: translateX(0);
-    }
-    to {
-      transform: translateX(-50%);
-    }
-  }
-
+  /*
+   * Marquee strip: tech stack ticker between hero and background. The track
+   * is two identical half-tracks with no parent gap (see Projects.tsx), so
+   * the -50% loop point lands exactly on the seam with no snap. Keyframes
+   * are top-level, not in this layer — see the ping-dot note above.
+   */
   @media (prefers-reduced-motion: no-preference) {
     .marquee-track {
       animation: marquee 36s linear infinite;
@@ -356,7 +343,54 @@
   }
 
   .marquee-mask {
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
     mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
+  }
+
+  /*
+   * Reduced-motion fallback: no animation, so the strip becomes a
+   * swipeable chip row instead of a frozen ticker. Scrollbars hidden —
+   * the edge fade is the affordance. This block must come AFTER the base
+   * rule above: same layer, same specificity, so source order decides,
+   * and the `overflow` shorthand would otherwise win back `hidden`.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    .marquee-mask {
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .marquee-mask::-webkit-scrollbar {
+      display: none;
+    }
+  }
+}
+
+/*
+ * Hoisted keyframes. Deliberately unlayered: `@keyframes` inside a cascade
+ * layer failed to resolve on older WebKit, freezing any animation that
+ * referenced them on its first frame with no console error. Unlayered
+ * keyframes resolve everywhere layers are supported.
+ */
+@keyframes ping-soft {
+  0% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  80%,
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
   }
 }
 

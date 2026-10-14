@@ -109,16 +109,22 @@ export default function Projects({ id }: { id: string }) {
       </div>
 
       {stackTicker.length > 0 ? (
-        <div
-          aria-hidden="true"
-          className="marquee-mask mt-20 overflow-hidden border-y border-line py-4"
-        >
-          <div className="marquee-track flex w-max items-center gap-8 font-mono text-xs tracking-[0.18em] text-foreground-dim uppercase">
-            {[...stackTicker, ...stackTicker].map((tech, i) => (
-              <span key={`${tech}-${i}`} className="flex items-center gap-8">
-                <span>{tech}</span>
-                <span className="text-accent">·</span>
-              </span>
+        <div aria-hidden="true" className="marquee-mask mt-20 border-y border-line py-4">
+          {/*
+            Two identical half-tracks, no gap on the track itself: each half
+            carries its own trailing padding, so the track is exactly 2× one
+            half and the -50% loop point lands on the seam with no snap.
+          */}
+          <div className="marquee-track flex w-max items-center font-mono text-xs tracking-[0.18em] text-foreground-dim uppercase">
+            {[0, 1].map((copy) => (
+              <div key={copy} className="flex items-center gap-8 pr-8">
+                {stackTicker.map((tech) => (
+                  <span key={tech} className="flex items-center gap-8">
+                    <span>{tech}</span>
+                    <span className="text-accent">·</span>
+                  </span>
+                ))}
+              </div>
             ))}
           </div>
         </div>
